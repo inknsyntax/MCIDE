@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MCIDE - The Minecraft IDE</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body data-theme="dark">
+    <!-- Home Screen -->
+    <div id="home-screen" class="home-screen active">
+        <div class="home-content">
+            <div class="home-header">
+                <h1 class="home-title">⚒️ MCIDE</h1>
+                <p class="home-subtitle">Minecraft Integrated Development Environment</p>
+            </div>
+            <div class="home-grid">
+                <div class="home-card" id="btn-new-project">
+                    <div class="card-icon">🎨</div>
+                    <h3>New Project</h3>
+                    <p>Start building</p>
+                </div>
+                <div class="home-card" id="btn-command-builder">
+                    <div class="card-icon">⚡</div>
+                    <h3>Command Builder</h3>
+                    <p>Create commands</p>
+                </div>
+                <div class="home-card" id="btn-redstone-tester">
+                    <div class="card-icon">🔴</div>
+                    <h3>Redstone Tester</h3>
+                    <p>Test circuits</p>
+                </div>
+                <div class="home-card" id="btn-import-schematic">
+                    <div class="card-icon">📥</div>
+                    <h3>Import Schematic</h3>
+                    <p>Import files</p>
+                </div>
+            </div>
+            <div class="home-footer">
+                <p class="home-version">v2.0 - Professional 3D IDE</p>
+                <div class="theme-switcher">
+                    <span>Theme:</span>
+                    <button class="theme-btn" data-theme="light">☀️ Light</button>
+                    <button class="theme-btn" data-theme="coffee">☕ Coffee</button>
+                    <button class="theme-btn" data-theme="dark" data-active="true">🌙 Dark</button>
+                    <button class="theme-btn" data-theme="onyx">⬛ Onyx</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Editor Layout -->
+    <div id="editor-screen" class="editor-screen">
+        <div class="editor-layout">
+            <!-- Top Header/Toolbar -->
+            <header class="editor-header">
+                <div class="header-left">
+                    <button class="btn-icon" id="btn-home" title="Back to Home">⚒️</button>
+                    <span class="project-name">Untitled Project</span>
+                </div>
+                <div class="header-center">
+                    <button class="header-btn">File</button>
+                    <button class="header-btn">Edit</button>
+                    <button class="header-btn">Build</button>
+                </div>
+                <div class="header-right">
+                    <select id="version-select" class="version-select">
+                        <option value="1.20.4">1.20.4</option>
+                        <option value="1.20.1">1.20.1</option>
+                        <option value="1.0">1.0</option>
+                    </select>
+                    <button class="btn-icon" id="btn-theme-toggle">🌙</button>
+                </div>
+            </header>
+
+            <!-- Main Content Area -->
+            <div class="editor-content">
+            <!-- Left Sidebar -->
+            <aside class="sidebar left-sidebar">
+                <div class="panel">
+                    <h3 class="panel-title">📁 Project</h3>
+                    <ul class="file-tree">
+                        <li><span class="icon">📄</span> main.schem</li>
+                        <li><span class="icon">⚙️</span> settings.cfg</li>
+                        <li><span class="icon">📋</span> commands.mcf</li>
+                    </ul>
+                </div>
+                <div class="panel">
+                    <h3 class="panel-title">🕐 Versions</h3>
+                    <select id="version-select" class="version-select">
+                        <option>1.20.4 (Latest)</option>
+                        <option>1.20.1</option>
+                        <option>Snapshot 24w19a</option>
+                    </select>
+                </div>
+                <div class="panel">
+                    <h3 class="panel-title">🎯 Blocks</h3>
+                    <div id="block-list" class="block-list"></div>                    <div style=\"margin-top: 8px; font-size: 11px; color: #58a6ff; border-top: 1px solid #1a1a1a; padding-top: 8px;\">
+                        Selected: <strong id=\"selected-block-name\">oak_planks</strong> (ID: <span id=\"selected-block-id\">5</span>)
+                    </div>                </div>
+            </aside>
+
+            <!-- Canvas Area -->
+            <main class="main-content">
+                <canvas id="mc-canvas"></canvas>
+                <div class="canvas-overlay">
+                    <div class="fps-counter">FPS: <span id="fps">60</span></div>
+                </div>
+            </main>
+
+            <!-- Right Sidebar -->
+            <aside class="sidebar right-sidebar">
+                <div class="panel">
+                    <h3 class="panel-title">🔧 Tools</h3>
+                    <button class="tool-btn" data-tool="select">🎨 Selection</button>
+                    <button class="tool-btn" data-tool="place">📝 Place Block</button>
+                    <button class="tool-btn" data-tool="break">🔨 Break Block</button>
+                    <button class="tool-btn" data-tool="debug">🔍 Debug</button>
+                </div>
+                <div class="panel">
+                    <h3 class="panel-title">� Export</h3>
+                    <button id="export-json-btn" class="tool-btn" style="width: 100%; margin-bottom: 5px;">📋 Export JSON</button>
+                    <button id="export-csv-btn" class="tool-btn" style="width: 100%; margin-bottom: 5px;">📊 Export CSV</button>
+                    <button id="copy-summary-btn" class="tool-btn" style="width: 100%;">📈 Copy Summary</button>
+                </div>
+                <div class="panel">
+                    <h3 class="panel-title">�📊 Stats</h3>
+                    <div class="stat-item">
+                        <span>Blocks Loaded:</span>
+                        <span id="stat-blocks">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span>Textures:</span>
+                        <span id="stat-textures">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span>Render Mode:</span>
+                        <span id="stat-mode">Loading...</span>
+                    </div>
+                    <div class="stat-item">
+                        <span>Position:</span>
+                        <span id="stat-pos">0, 0, 0</span>
+                    </div>
+                </div>
+            </aside>
+        </div>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <span id="status-left">Ready</span>
+            <span id="status-center">Initializing MCIDE Engine...</span>
+            <span id="status-right"></span>
+        </footer>
+    </div>
+
+    <script type="module">
+        import init, { MCIDEEngine } from './pkg/mcide.js';
+        import { MCIDERenderer } from './renderer.js';
+
+        let engine = null;
+        let renderer = null;
+        let lastTime = Date.now();
+        let frameCount = 0;
+        let currentTool = 'place';
+        let keys = {};
+
+        // Initialize immediately with synchronous fallback
+        function initializeNow() {
+            const canvas = document.getElementById('mc-canvas');
+            renderer = new MCIDERenderer(canvas, engine);
+            // Initialize Canvas 2D immediately (don't wait for WebGPU)
+            renderer.ctx = canvas.getContext('2d');
+            renderer.useCanvas2D = true;
+            renderer.isReady = true;
+            document.getElementById('stat-mode').textContent = 'Canvas 2D (Initializing)';
+            
+            // Start rendering immediately
+            function animate() {
+                if (renderer && renderer.isReady && engine) {
+                    // Handle camera movement
+                    if (keys['ArrowUp'] || keys['w'] || keys['W']) renderer.cameraZ -= 0.5;
+                    if (keys['ArrowDown'] || keys['s'] || keys['S']) renderer.cameraZ += 0.5;
+                    if (keys['ArrowLeft'] || keys['a'] || keys['A']) renderer.cameraX -= 0.5;
+                    if (keys['ArrowRight'] || keys['d'] || keys['D']) renderer.cameraX += 0.5;
+                    if (keys['q'] || keys['Q']) renderer.cameraY -= 0.5;
+                    if (keys['e'] || keys['E']) renderer.cameraY += 0.5;
+                    
+                    renderer.render();
+                }
+                
+                frameCount++;
+                const now = Date.now();
+                const delta = now - lastTime;
+                if (delta >= 1000) {
+                    document.getElementById('fps').textContent = frameCount;
+                    frameCount = 0;
+                    lastTime = now;
+                }
+                
+                requestAnimationFrame(animate);
+            }
+            animate();
+            
+            // Set up tool buttons
+            document.querySelectorAll('[data-tool]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('[data-tool]').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    currentTool = btn.dataset.tool;
+                });
+            });
+            
+            // Set up export buttons
+            document.getElementById('export-json-btn')?.addEventListener('click', () => {
+                if (!engine) return;
+                const jsonData = engine.export_json();
+                const blob = new Blob([jsonData], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `MCIDE_export_${Date.now()}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+            });
+            
+            document.getElementById('export-csv-btn')?.addEventListener('click', () => {
+                if (!engine) return;
+                const csvData = engine.export_csv();
+                const blob = new Blob([csvData], { type: 'text/csv' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `MCIDE_export_${Date.now()}.csv`;
+                a.click();
+                URL.revokeObjectURL(url);
+            });
+            
+            document.getElementById('copy-summary-btn')?.addEventListener('click', () => {
+                if (!engine) return;
+                const summary = engine.get_world_summary();
+                const parsed = JSON.parse(summary);
+                const text = `MCIDE World Summary:\n\nTotal Blocks: ${parsed.total}\nBounds:\n  X: ${parsed.bounds.min_x} to ${parsed.bounds.max_x}\n  Y: ${parsed.bounds.min_y} to ${parsed.bounds.max_y}\n  Z: ${parsed.bounds.min_z} to ${parsed.bounds.max_z}\nVersion: ${parsed.version}`;
+                navigator.clipboard.writeText(text).then(() => {
+                    alert('Summary copied to clipboard!');
+                });
+            });
+            
+            // Block palette selection - setup happens after WASM loads
+            window.selectedBlockId = 5; // oak_planks default
+            
+            // Set up keyboard controls
+            window.addEventListener('keydown', (e) => {
+                keys[e.key] = true;
+            });
+            window.addEventListener('keyup', (e) => {
+                keys[e.key] = false;
+            });
+            
+            // Set up canvas interaction
+            canvas.addEventListener('click', (e) => {
+                if (!engine) return;
+                const rect = canvas.getBoundingClientRect();
+                const screenX = e.clientX - rect.left;
+                const screenY = e.clientY - rect.top;
+                const pos = renderer.screenToWorld(screenX, screenY);
+                
+                // Handle vertical placement with modifiers
+                let placeY = pos.y;
+                if (e.shiftKey) placeY += 1;  // Place above
+                if (e.ctrlKey) placeY -= 1;  // Place below
+                if (placeY < 0) placeY = 0;
+                if (placeY > 63) placeY = 63;
+                
+                if (currentTool === 'place') {
+                    engine.set_block(pos.x, placeY, pos.z, window.selectedBlockId || 5);
+                    document.getElementById('status-center').textContent = `✓ Placed block at ${pos.x}, ${placeY}, ${pos.z}`;
+                } else if (currentTool === 'break') {
+                    engine.set_block(pos.x, placeY, pos.z, 0);  // air
+                    document.getElementById('status-center').textContent = `✗ Broke block at ${pos.x}, ${placeY}, ${pos.z}`;
+                }
+                document.getElementById('stat-pos').textContent = `${pos.x}, ${placeY}, ${pos.z}`;
+            });
+            
+            canvas.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                if (!engine) return;
+                const rect = canvas.getBoundingClientRect();
+                const screenX = e.clientX - rect.left;
+                const screenY = e.clientY - rect.top;
+                const pos = renderer.screenToWorld(screenX, screenY);
+                
+                try {
+                    const blockId = engine.get_block(pos.x, pos.y, pos.z);
+                    const blockName = engine.get_block_name(blockId);
+                    document.getElementById('status-center').textContent = `🔍 ${blockName} (ID: ${blockId})`;
+                } catch (err) {
+                    console.error('Inspect error:', err);
+                }
+            });
+        }
+
+        // Initialize WASM asynchronously in background
+        async function initializeWasm() {
+            try {
+                console.log('Loading WASM...');
+                await init();
+                console.log('WASM loaded, creating engine...');
+                
+                engine = new MCIDEEngine(window.innerWidth - 560, window.innerHeight - 120);
+                const blockListJson = engine.get_block_list();
+                const blockList = JSON.parse(blockListJson);
+                
+                const blockListEl = document.getElementById('block-list');
+                blockList.forEach(block => {
+                    const div = document.createElement('div');
+                    div.className = 'block-item' + (block.id === 5 ? ' active' : '');
+                    div.textContent = block.name;
+                    div.dataset.blockId = block.id;
+                    div.addEventListener('click', () => {
+                        document.querySelectorAll('#block-list .block-item').forEach(b => b.classList.remove('active'));
+                        div.classList.add('active');
+                        window.selectedBlockId = block.id;
+                        const nameEl = document.getElementById('selected-block-name');
+                        const idEl = document.getElementById('selected-block-id');
+                        if (nameEl) nameEl.textContent = block.name;
+                        if (idEl) idEl.textContent = block.id;
+                    });
+                    blockListEl.appendChild(div);
+                });
+                
+                document.getElementById('stat-blocks').textContent = blockList.length;
+                
+                // Setup version system
+                const versionSelect = document.getElementById('version-select');
+                try {
+                    const versionsJson = engine.get_versions();
+                    const versions = JSON.parse(versionsJson);
+                    versionSelect.innerHTML = '';
+                    versions.forEach(version => {
+                        const option = document.createElement('option');
+                        option.value = version;
+                        option.textContent = version === '1.20.4' ? '1.20.4 (Latest)' : version;
+                        if (version === '1.20.4') {
+                            option.selected = true;
+                        }
+                        versionSelect.appendChild(option);
+                    });
+                } catch (err) {
+                    console.error('Error loading versions:', err);
+                }
+                
+                versionSelect.addEventListener('change', (e) => {
+                    const newVersion = e.target.value;
+                    engine.set_version(newVersion);
+                    console.log(`Switched to version: ${newVersion}`);
+                    
+                    // Update block palette to show only available blocks
+                    const availableBlocksJson = engine.get_available_blocks();
+                    const availableBlocks = JSON.parse(availableBlocksJson);
+                    
+                    const blockListEl = document.getElementById('block-list');
+                    blockListEl.innerHTML = '';
+                    
+                    availableBlocks.forEach(block => {
+                        const div = document.createElement('div');
+                        div.className = 'block-item' + (block.id === 5 ? ' active' : '');
+                        div.textContent = block.name;
+                        div.dataset.blockId = block.id;
+                        div.addEventListener('click', () => {
+                            document.querySelectorAll('#block-list .block-item').forEach(b => b.classList.remove('active'));
+                            div.classList.add('active');
+                            window.selectedBlockId = block.id;
+                            const nameEl = document.getElementById('selected-block-name');
+                            const idEl = document.getElementById('selected-block-id');
+                            if (nameEl) nameEl.textContent = block.name;
+                            if (idEl) idEl.textContent = block.id;
+                        });
+                        blockListEl.appendChild(div);
+                    });
+                });
+                
+                // Setup undo/redo history
+                window.buildHistory = [];
+                window.historyIndex = -1;
+                const maxHistory = 100;
+                
+                // Patch the engine methods to track history
+                const originalSetBlock = engine.set_block.bind(engine);
+                engine.set_block = function(x, y, z, blockId) {
+                    const oldId = this.get_block(x, y, z);
+                    originalSetBlock(x, y, z, blockId);
+                    
+                    // Record in history
+                    window.buildHistory = window.buildHistory.slice(0, window.historyIndex + 1);
+                    window.buildHistory.push({ x, y, z, oldId, newId: blockId });
+                    window.historyIndex++;
+                    
+                    // Limit history size
+                    if (window.buildHistory.length > maxHistory) {
+                        window.buildHistory.shift();
+                        window.historyIndex--;
+                    }
+                    
+                    // Invalidate chunk cache when blocks change
+                    if (renderer && renderer.invalidateChunkCache) {
+                        renderer.invalidateChunkCache();
+                    }
+                };
+                
+                // Add undo/redo keyboard shortcuts
+                document.addEventListener('keydown', (e) => {
+                    if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+                        e.preventDefault();
+                        // Undo
+                        if (window.historyIndex >= 0) {
+                            const action = window.buildHistory[window.historyIndex];
+                            engine.set_block(action.x, action.y, action.z, action.oldId);
+                            window.historyIndex--;
+                            document.getElementById('status-center').textContent = `↶ Undone action`;
+                        }
+                    } else if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.shiftKey && e.key === 'z'))) {
+                        e.preventDefault();
+                        // Redo
+                        if (window.historyIndex < window.buildHistory.length - 1) {
+                            window.historyIndex++;
+                            const action = window.buildHistory[window.historyIndex];
+                            engine.set_block(action.x, action.y, action.z, action.newId);
+                            document.getElementById('status-center').textContent = `↷ Redone action`;
+                        }
+                    }
+                });
+                
+                if (renderer) {
+                    await renderer.initialize();
+                    const isWebGPU = renderer.device !== null;
+                    document.getElementById('stat-mode').textContent = isWebGPU ? 'WebGPU' : 'Canvas 2D';
+                }
+                
+                document.getElementById('status-center').textContent = '✓ MCIDE Ready - Click to build! (WASD=Move, Q/E=Up/Down, RClick=Inspect)';
+                console.log('MCIDE fully initialized');
+            } catch (err) {
+                console.error('WASM init error:', err);
+                document.getElementById('status-center').textContent = `Engine Error: ${err.message}`;
+            }
+        }
+
+        // Start immediately
+        initializeNow();
+        
+        // Load WASM in background
+        initializeWasm().catch(err => {
+            console.error('Fatal error:', err);
+            document.getElementById('status-center').textContent = `Fatal Error: ${err.message}`;
+        });
+    </script>
+</body>
+</html>

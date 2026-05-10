@@ -1,0 +1,1196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MCIDE - Minecraft Integrated Development Environment</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body data-theme="dark">
+    <!-- Home Screen -->
+    <div id="home-screen" class="home-screen active">
+        <div class="home-content">
+            <div class="home-header">
+                <h1 class="home-title">⚒ MCIDE</h1>
+                <p class="home-subtitle">Minecraft Integrated Development Environment</p>
+                <p class="home-tagline">Professional 3D Builder • Command Creator • Redstone Tester</p>
+            </div>
+
+            <div class="home-grid">
+                <div class="home-card" id="btn-new-project">
+                    <div class="card-icon">▢</div>
+                    <h3>New Project</h3>
+                    <p>Start building with a blank canvas</p>
+                </div>
+                <div class="home-card" id="btn-command-builder">
+                    <div class="card-icon">▶</div>
+                    <h3>Command Builder</h3>
+                    <p>Create Minecraft commands visually</p>
+                </div>
+                <div class="home-card" id="btn-redstone-tester">
+                    <div class="card-icon">●</div>
+                    <h3>Redstone Tester</h3>
+                    <p>Design and test circuits</p>
+                </div>
+                <div class="home-card" id="btn-import-schematic">
+                    <div class="card-icon">↓</div>
+                    <h3>Import Schematic</h3>
+                    <p>Load .schem & .litematica files</p>
+                </div>
+            </div>
+
+            <div class="home-footer">
+                <p class="home-version">MCIDE v2.0 • Like Blender, But For Minecraft</p>
+                <div class="theme-switcher">
+                    <span>◯ Theme:</span>
+                    <button class="theme-btn" data-theme="light">◑ Light</button>
+                    <button class="theme-btn" data-theme="coffee">◐ Coffee</button>
+                    <button class="theme-btn" data-theme="dark" data-active="true">● Dark</button>
+                    <button class="theme-btn" data-theme="onyx">■ Onyx</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Editor Layout -->
+    <div id="editor-screen" class="editor-screen">
+        <div class="editor-layout">
+            <!-- Top Header/Toolbar -->
+            <header class="editor-header">
+                <div class="header-left">
+                    <button class="btn-icon" id="btn-home" title="Back to Home">⚒️</button>
+                    <span class="project-name">Untitled Project</span>
+                </div>
+
+                <div class="header-center">
+                    <div class="dropdown">
+                        <button class="header-btn">☰ File</button>
+                        <div class="dropdown-content">
+                            <a href="#" id="btn-save">Save Project</a>
+                            <a href="#" id="btn-load">Load Project</a>
+                            <a href="#" id="btn-export-schematic">Export Schematic</a>
+                        </div>
+                    </div>
+                    <button class="header-btn">✎ Edit</button>
+                    <button class="header-btn">⬚ Build</button>
+                    <button class="header-btn">? Help</button>
+                </div>
+
+                <div class="header-right">
+                    <select id="version-select" class="version-select">
+                        <option value="1.20.4">1.20.4</option>
+                        <option value="1.20.1">1.20.1</option>
+                        <option value="1.0">1.0</option>
+                    </select>
+                    <button class="btn-icon" id="btn-theme-toggle" title="Toggle Theme">◯</button>
+                </div>
+            </header>
+
+            <!-- Main Content Area (3-Column Layout) -->
+            <div class="editor-content">
+                <!-- Left Panel - Blocks & Properties -->
+                <aside class="sidebar-panel left-panel">
+                    <div class="panel-header">
+                        <h2>▢ Blocks</h2>
+                    </div>
+                    <div class="panel-content">
+                        <input type="search" id="block-search" class="search-input" placeholder="Search blocks...">
+                        <div id="block-list" class="block-grid"></div>
+                        <div class="selected-block-info">
+                            <div><strong id="selected-block-name">oak_planks</strong></div>
+                            <div class="text-muted">ID: <span id="selected-block-id">5</span></div>
+                        </div>
+                    </div>
+
+                    <div class="panel-header">
+                        <h2>◈ Project</h2>
+                    </div>
+                    <div class="panel-content">
+                        <ul class="file-tree">
+                            <li><span class="icon">◇</span> world.nbt</li>
+                            <li><span class="icon">⚙</span> config.json</li>
+                            <li><span class="icon">▬</span> commands.mcf</li>
+                        </ul>
+                    </div>
+                </aside>
+
+                <!-- Center - 3D Viewport (Blender-Style) -->
+                <div class="viewport-container">
+                    <canvas id="mc-canvas" class="viewport-canvas"></canvas>
+                    
+                    <!-- HUD Overlay -->
+                    <div class="viewport-overlay">
+                        <!-- Top-Right HUD -->
+                        <div class="viewport-hud">
+                            <div class="hud-section">
+                                <div class="hud-item">
+                                    <span class="hud-label">FPS</span>
+                                    <span class="hud-value" id="hud-fps">60</span>
+                                </div>
+                                <div class="hud-item">
+                                    <span class="hud-label">Pos</span>
+                                    <span class="hud-value" id="hud-pos">128, 32, 128</span>
+                                </div>
+                            </div>
+                            <div class="hud-section">
+                                <div class="hud-item">
+                                    <span class="hud-label">Mode</span>
+                                    <span class="hud-value" id="hud-mode">Place</span>
+                                </div>
+                                <div class="hud-item">
+                                    <span class="hud-label">Ver</span>
+                                    <span class="hud-value" id="hud-version">1.20.4</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Bottom-Left Shortcuts -->
+                        <div class="viewport-shortcuts">
+                            <div class="shortcut"><strong>WASD</strong> Move Camera</div>
+                            <div class="shortcut"><strong>Q/E</strong> Up/Down</div>
+                            <div class="shortcut"><strong>Click</strong> Place Block</div>
+                            <div class="shortcut"><strong>RClick</strong> Inspect</div>
+                            <div class="shortcut"><strong>Shift+Click</strong> Place Above</div>
+                            <div class="shortcut"><strong>Ctrl+Click</strong> Place Below</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Panel - Tools & Export -->
+                <aside class="sidebar-panel right-panel">
+                    <div class="panel-header">
+                        <h2>⚙ Tools</h2>
+                    </div>
+                    <div class="panel-content">
+                        <div class="tool-buttons">
+                            <button class="tool-btn active" data-tool="place" title="Place Block">
+                                <span class="tool-icon">⚒</span>
+                                <span>Place</span>
+                            </button>
+                            <button class="tool-btn" data-tool="break" title="Break Block">
+                                <span class="tool-icon">✕</span>
+                                <span>Break</span>
+                            </button>
+                            <button class="tool-btn" data-tool="select" title="Select Box">
+                                <span class="tool-icon">▢</span>
+                                <span>Select</span>
+                            </button>
+                            <button class="tool-btn" data-tool="redstone" title="Redstone Mode">
+                                <span class="tool-icon">●</span>
+                                <span>Redstone</span>
+                            </button>
+                        </div>
+                        <div id="selection-info" class="selection-info" style="display:none;">
+                            <div class="stat-row">
+                                <span>Start:</span>
+                                <span id="selection-start">-</span>
+                            </div>
+                            <div class="stat-row">
+                                <span>End:</span>
+                                <span id="selection-end">-</span>
+                            </div>
+                            <div class="stat-row">
+                                <span>Size:</span>
+                                <span id="selection-size">-</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="panel-header">
+                        <h2>◉ Redstone</h2>
+                    </div>
+                    <div class="panel-content" id="redstone-panel">
+                        <button id="toggle-redstone-list" class="export-btn">
+                            <span>▼</span> Show Components
+                        </button>
+                        <div id="redstone-list" style="display:none; max-height:200px; overflow-y:auto;">
+                            <!-- Redstone components will be listed here -->
+                        </div>
+                    </div>
+
+                    <div class="panel-header">
+                        <h2>✎ Commands</h2>
+                    </div>
+                    <div class="panel-content" id="command-builder">
+                        <div class="command-builder-section">
+                            <label>Command Type:</label>
+                            <select id="command-type" class="command-select">
+                                <option value="setblock">setblock</option>
+                                <option value="fill">fill</option>
+                                <option value="give">give</option>
+                                <option value="tp">teleport</option>
+                                <option value="execute">execute</option>
+                                <option value="clone">clone</option>
+                                <option value="summon">summon</option>
+                            </select>
+                        </div>
+                        <div class="command-builder-section">
+                            <label>Target Coordinates:</label>
+                            <input type="text" id="command-coords" class="command-input" placeholder="~ ~ ~" value="~ ~ ~">
+                        </div>
+                        <div class="command-builder-section">
+                            <label>Block/Item:</label>
+                            <input type="text" id="command-block" class="command-input" placeholder="stone">
+                        </div>
+                        <button id="generate-command-btn" class="export-btn">◉ Generate</button>
+                        <div id="generated-command" style="margin-top:8px; padding:8px; background:var(--color-surface); border-radius:4px; font-family:monospace; font-size:11px; white-space:pre-wrap; word-break:break-all; max-height:100px; overflow-y:auto;"></div>
+                    </div>
+
+                    <div class="panel-header">
+                        <h2>⬇ Export</h2>
+                    </div>
+                    <div class="panel-content">
+                        <button id="export-json-btn" class="export-btn">
+                            <span>◈</span> JSON
+                        </button>
+                        <button id="export-csv-btn" class="export-btn">
+                            <span>⬇</span> CSV
+                        </button>
+                        <button id="copy-summary-btn" class="export-btn">
+                            <span>⬇</span> Summary
+                        </button>
+                    </div>
+
+                    <div class="panel-header">
+                        <h2>◈ Stats</h2>
+                    </div>
+                    <div class="panel-content">
+                        <div class="stat-row">
+                            <span class="stat-label">Blocks</span>
+                            <span class="stat-value" id="stat-total-blocks">0</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Chunks</span>
+                            <span class="stat-value" id="stat-chunks">0</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Memory</span>
+                            <span class="stat-value" id="stat-memory">0 MB</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Render</span>
+                            <span class="stat-value" id="stat-render-mode">Canvas 2D</span>
+                        </div>
+                    </div>
+
+                    <div class="panel-header">
+                        <h2>↶ History</h2>
+                    </div>
+                    <div class="panel-content">
+                        <div class="history-buttons">
+                            <button id="btn-undo" class="history-btn" title="Undo (Ctrl+Z)">↶ Undo</button>
+                            <button id="btn-redo" class="history-btn" title="Redo (Ctrl+Y)">↷ Redo</button>
+                        </div>
+                        <div id="history-list" class="history-list"></div>
+                    </div>
+
+                    <div class="panel-header">
+                        <h2>⚙ Hotkeys</h2>
+                    </div>
+                    <div class="panel-content" id="hotkey-panel">
+                        <button id="btn-customize-hotkeys" class="export-btn">
+                            <span>⌨</span> Customize Hotkeys
+                        </button>
+                        <div id="hotkey-list" style="font-size: 11px; margin-top: 8px; line-height: 1.6;">
+                            <div style="color: var(--color-text-secondary); padding: 4px 0;"><strong>Place:</strong> <code>LClick</code></div>
+                            <div style="color: var(--color-text-secondary); padding: 4px 0;"><strong>Break:</strong> <code>RClick</code></div>
+                            <div style="color: var(--color-text-secondary); padding: 4px 0;"><strong>Move:</strong> <code>WASD</code></div>
+                            <div style="color: var(--color-text-secondary); padding: 4px 0;"><strong>Up/Down:</strong> <code>E/Q</code></div>
+                            <div style="color: var(--color-text-secondary); padding: 4px 0;"><strong>Undo:</strong> <code>Ctrl+Z</code></div>
+                            <div style="color: var(--color-text-secondary); padding: 4px 0;"><strong>Redo:</strong> <code>Ctrl+Y</code></div>
+                        </div>
+                    </div>
+                </aside>
+            </div>
+
+            <!-- Bottom Status Bar -->
+            <footer class="editor-footer">
+                <div class="status-segment">
+                    <span id="status-message">Ready</span>
+                </div>
+                <div class="status-segment" id="status-build"></div>
+            </footer>
+        </div>
+    </div>
+
+    <!-- Modal Structure -->
+    <div id="modal-overlay" class="modal-overlay">
+        <div id="modal-container" class="modal-container">
+            <div class="modal-header">
+                <h3 id="modal-title">Modal Title</h3>
+                <button id="modal-close" class="modal-close-btn">&times;</button>
+            </div>
+            <div id="modal-content" class="modal-content">
+                <!-- Dynamic content goes here -->
+            </div>
+            <div id="modal-actions" class="modal-actions">
+                <!-- Dynamic buttons go here -->
+            </div>
+        </div>
+    </div>
+
+    // ============ MODAL MANAGER ============
+    const modalManager = {
+        overlay: document.getElementById('modal-overlay'),
+        container: document.getElementById('modal-container'),
+        title: document.getElementById('modal-title'),
+        content: document.getElementById('modal-content'),
+        actions: document.getElementById('modal-actions'),
+        
+        init() {
+            document.getElementById('modal-close').addEventListener('click', () => this.hide());
+            this.overlay.addEventListener('click', (e) => {
+                if (e.target === this.overlay) {
+                    this.hide();
+                }
+            });
+        },
+
+        show({ title, content, actions }) {
+            this.title.textContent = title;
+            this.content.innerHTML = content;
+            this.actions.innerHTML = '';
+            
+            actions.forEach(action => {
+                const button = document.createElement('button');
+                button.textContent = action.label;
+                button.className = `modal-btn ${action.class || 'secondary'}`;
+                button.addEventListener('click', () => {
+                    if(action.callback) action.callback();
+                    if(action.closes) this.hide();
+                });
+                this.actions.appendChild(button);
+            });
+
+            this.overlay.classList.add('active');
+        },
+
+        hide() {
+            this.overlay.classList.remove('active');
+        }
+    };
+
+    // Initialize modal manager
+    modalManager.init();
+
+    <script type="module">
+        import init, { MCIDEEngine } from './pkg/mcide.js';
+        import { MCIDERenderer } from './renderer.js';
+        import TextureManager from './textures.js';
+
+        let engine = null;
+        let renderer = null;
+        let lastTime = Date.now();
+        let frameCount = 0;
+        let currentTool = 'place';
+        let keys = {};
+        let isEditorActive = false;
+        let textureManager = null;
+
+        // ============ THEME MANAGEMENT ============
+        const themeManager = {
+            currentTheme: 'dark',
+            themes: ['light', 'coffee', 'dark', 'onyx'],
+            
+            setTheme(theme) {
+                if (this.themes.includes(theme)) {
+                    document.documentElement.setAttribute('data-theme', theme);
+                    this.currentTheme = theme;
+                    localStorage.setItem('mcide-theme', theme);
+                    
+                    document.querySelectorAll('.theme-btn').forEach(btn => {
+                        btn.removeAttribute('data-active');
+                        if (btn.getAttribute('data-theme') === theme) {
+                            btn.setAttribute('data-active', 'true');
+                        }
+                    });
+                }
+            },
+            
+            init() {
+                const saved = localStorage.getItem('mcide-theme') || 'dark';
+                this.setTheme(saved);
+            }
+        };
+
+        // ============ NAVIGATION ============
+        function showHome() {
+            isEditorActive = false;
+            document.getElementById('home-screen').classList.add('active');
+            document.getElementById('editor-screen').classList.remove('active');
+        }
+
+        function showEditor() {
+            isEditorActive = true;
+            document.getElementById('home-screen').classList.remove('active');
+            document.getElementById('editor-screen').classList.add('active');
+            if (!renderer) initializeRenderer();
+        }
+
+        // ============ RENDERER INITIALIZATION ============
+        function initializeRenderer() {
+            const canvas = document.getElementById('mc-canvas');
+            if (!engine) return;
+            
+            // Set canvas to match container size
+            const container = canvas.parentElement;
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+            canvas.width = width;
+            canvas.height = height;
+            
+            renderer = new MCIDERenderer(canvas, engine);
+            window.renderer = renderer;  // Expose for debugging
+            renderer.ctx = canvas.getContext('2d', { willReadFrequently: false });
+            renderer.useCanvas2D = true;
+            renderer.isReady = true;
+            // Set camera closer to ground for better view
+            renderer.cameraY = 5;
+            document.getElementById('stat-render-mode').textContent = 'Canvas 2D';
+            startAnimationLoop();
+        }
+
+        function startAnimationLoop() {
+            function animate() {
+                if (renderer && renderer.isReady && engine && isEditorActive) {
+                    // Camera controls (WASD = move, Q = down, E = up)
+                    if (keys['w'] || keys['W']) renderer.cameraZ -= 0.5;
+                    if (keys['s'] || keys['S']) renderer.cameraZ += 0.5;
+                    if (keys['a'] || keys['A']) renderer.cameraX -= 0.5;
+                    if (keys['d'] || keys['D']) renderer.cameraX += 0.5;
+                    if (keys['q'] || keys['Q']) renderer.cameraY -= 0.5;  // Q = down
+                    if (keys['e'] || keys['E']) renderer.cameraY += 0.5;  // E = up
+
+                    renderer.render();
+                    
+                    // Update HUD
+                    document.getElementById('hud-pos').textContent = 
+                        `${Math.round(renderer.cameraX)}, ${Math.round(renderer.cameraY)}, ${Math.round(renderer.cameraZ)}`;
+                }
+
+                frameCount++;
+                const now = Date.now();
+                const delta = now - lastTime;
+                if (delta >= 1000) {
+                    document.getElementById('hud-fps').textContent = frameCount;
+                    frameCount = 0;
+                    lastTime = now;
+                }
+
+                requestAnimationFrame(animate);
+            }
+            animate();
+        }
+
+        // ============ WASM INITIALIZATION ============
+        async function initializeWasm() {
+            try {
+                // Initialize texture manager
+                textureManager = new TextureManager();
+                
+                await init();
+                engine = new MCIDEEngine(1920, 1080);
+                window.engine = engine;  // Expose for debugging
+                
+                // Populate blocks
+                const blockListJson = engine.get_block_list();
+                const blockList = JSON.parse(blockListJson);
+                const blockListEl = document.getElementById('block-list');
+                
+                blockList.forEach(block => {
+                    const div = document.createElement('div');
+                    div.className = 'block-item' + (block.id === 5 ? ' active' : '');
+                    div.title = block.name;
+                    div.dataset.blockId = block.id;
+
+                    const img = document.createElement('img');
+                    img.src = `TexturesForMinecraft/${block.name}.png`;
+                    img.alt = block.name;
+                    img.className = 'block-preview-texture';
+                    img.onerror = () => { 
+                        // Fallback to a colored square if texture is missing
+                        const fallback = document.createElement('div');
+                        const blockColor = 'hsl(' + ((block.name.split('').reduce((a,c) => ((a<<5)-a)+c.charCodeAt(0), 0) & 0x7fffffff) % 360) + ', 70%, 50%)';
+                        fallback.style.backgroundColor = blockColor;
+                        fallback.style.width = '100%';
+                        fallback.style.height = '100%';
+                        fallback.style.borderRadius = '3px';
+                        div.replaceChild(fallback, img);
+                    };
+                    
+                    div.appendChild(img);
+                    
+                    div.addEventListener('click', () => {
+                        document.querySelectorAll('#block-list .block-item').forEach(b => b.classList.remove('active'));
+                        div.classList.add('active');
+                        window.selectedBlockId = block.id;
+                        document.getElementById('selected-block-name').textContent = block.name;
+                        document.getElementById('selected-block-id').textContent = block.id;
+                    });
+                    
+                    blockListEl.appendChild(div);
+                });
+
+                // Setup version
+                document.getElementById('version-select').addEventListener('change', (e) => {
+                    engine.set_version(e.target.value);
+                    document.getElementById('hud-version').textContent = e.target.value;
+                });
+
+                // Setup export
+                setupExportButtons();
+                
+                // Setup history
+                setupHistory();
+                
+                // Setup save/load
+                setupSaveLoad();
+                setupSchematicHandlers();
+                
+                document.getElementById('status-message').textContent = '✓ Ready - Click to build!';
+            } catch (err) {
+                console.error('WASM error:', err);
+                document.getElementById('status-message').textContent = `Error: ${err.message}`;
+            }
+        }
+
+        function setupExportButtons() {
+            document.getElementById('export-json-btn').addEventListener('click', () => {
+                if (!engine) return;
+                const data = engine.export_json();
+                downloadFile(data, 'json', 'application/json');
+            });
+
+            document.getElementById('export-csv-btn').addEventListener('click', () => {
+                if (!engine) return;
+                const data = engine.export_csv();
+                downloadFile(data, 'csv', 'text/csv');
+            });
+
+            document.getElementById('copy-summary-btn').addEventListener('click', () => {
+                if (!engine) return;
+                const summary = engine.get_world_summary();
+                const parsed = JSON.parse(summary);
+                const text = `MCIDE World Summary\n\nBlocks: ${parsed.total}\nBounds: X[${parsed.bounds.min_x}-${parsed.bounds.max_x}] Y[${parsed.bounds.min_y}-${parsed.bounds.max_y}] Z[${parsed.bounds.min_z}-${parsed.bounds.max_z}]\nVersion: ${parsed.version}`;
+                navigator.clipboard.writeText(text);
+                document.getElementById('status-message').textContent = '✓ Summary copied';
+            });
+        }
+
+        function downloadFile(data, ext, mime) {
+            const blob = new Blob([data], { type: mime });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `MCIDE_${Date.now()}.${ext}`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function setupHistory() {
+            window.buildHistory = [];
+            window.historyIndex = -1;
+            const maxHistory = 100;
+
+            const originalSetBlock = engine.set_block.bind(engine);
+            engine.set_block = function(x, y, z, blockId) {
+                const oldId = this.get_block(x, y, z);
+                originalSetBlock(x, y, z, blockId);
+                
+                window.buildHistory = window.buildHistory.slice(0, window.historyIndex + 1);
+                window.buildHistory.push({ x, y, z, oldId, newId: blockId });
+                window.historyIndex++;
+                
+                if (window.buildHistory.length > maxHistory) {
+                    window.buildHistory.shift();
+                    window.historyIndex--;
+                }
+
+                if (renderer && renderer.invalidateChunkCache) {
+                    renderer.invalidateChunkCache();
+                }
+            };
+
+            document.getElementById('btn-undo').addEventListener('click', () => {
+                if (window.historyIndex >= 0) {
+                    const action = window.buildHistory[window.historyIndex];
+                    originalSetBlock(action.x, action.y, action.z, action.oldId);
+                    window.historyIndex--;
+                    document.getElementById('status-message').textContent = '↶ Undone action';
+                }
+            });
+
+            document.getElementById('btn-redo').addEventListener('click', () => {
+                if (window.historyIndex < window.buildHistory.length - 1) {
+                    window.historyIndex++;
+                    const action = window.buildHistory[window.historyIndex];
+                    originalSetBlock(action.x, action.y, action.z, action.newId);
+                    document.getElementById('status-message').textContent = '↷ Redone action';
+                }
+            });
+
+            document.addEventListener('keydown', (e) => {
+                if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+                    e.preventDefault();
+                    if (window.historyIndex >= 0) {
+                        const action = window.buildHistory[window.historyIndex];
+                        originalSetBlock(action.x, action.y, action.z, action.oldId);
+                        window.historyIndex--;
+                        document.getElementById('status-message').textContent = '↶ Undone action';
+                    }
+                } else if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.shiftKey && e.key === 'z'))) {
+                    e.preventDefault();
+                    if (window.historyIndex < window.buildHistory.length - 1) {
+                        window.historyIndex++;
+                        const action = window.buildHistory[window.historyIndex];
+                        originalSetBlock(action.x, action.y, action.z, action.newId);
+                        document.getElementById('status-message').textContent = '↷ Redone action';
+                    }
+                }
+            });
+        }
+
+        // ============ BLOCK SEARCH/FILTER ============
+        document.getElementById('block-search').addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase();
+            document.querySelectorAll('#block-list .block-item').forEach(item => {
+                const blockName = item.title.toLowerCase();
+                if (blockName.includes(query) || query === '') {
+                    item.style.display = '';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        });
+
+        // ============ ADVANCED SELECTION (BOX SELECT) ============
+        let selectionMode = false;
+        let selectionStart = null;
+        let selectionEnd = null;
+
+        document.getElementById('mc-canvas').addEventListener('mousedown', (e) => {
+            if (currentTool !== 'select' || !renderer) return;
+            
+            const pos = renderer.screenToWorld(e.offsetX, e.offsetY);
+            selectionStart = { x: pos.x, y: pos.y, z: pos.z };
+            selectionMode = true;
+        });
+
+        document.getElementById('mc-canvas').addEventListener('mousemove', (e) => {
+            if (!selectionMode || !selectionStart || !renderer) return;
+            
+            const pos = renderer.screenToWorld(e.offsetX, e.offsetY);
+            selectionEnd = { x: pos.x, y: pos.y, z: pos.z };
+            
+            // Update selection info
+            const minX = Math.min(selectionStart.x, selectionEnd.x);
+            const maxX = Math.max(selectionStart.x, selectionEnd.x);
+            const minY = Math.min(selectionStart.y, selectionEnd.y);
+            const maxY = Math.max(selectionStart.y, selectionEnd.y);
+            const minZ = Math.min(selectionStart.z, selectionEnd.z);
+            const maxZ = Math.max(selectionStart.z, selectionEnd.z);
+            
+            const width = maxX - minX + 1;
+            const height = maxY - minY + 1;
+            const depth = maxZ - minZ + 1;
+            
+            document.getElementById('selection-start').textContent = `${selectionStart.x}, ${selectionStart.y}, ${selectionStart.z}`;
+            document.getElementById('selection-end').textContent = `${selectionEnd.x}, ${selectionEnd.y}, ${selectionEnd.z}`;
+            document.getElementById('selection-size').textContent = `${width}×${height}×${depth}`;
+            document.getElementById('selection-info').style.display = '';
+        });
+
+        document.getElementById('mc-canvas').addEventListener('mouseup', (e) => {
+            selectionMode = false;
+            if (selectionStart && selectionEnd) {
+                document.getElementById('status-message').textContent = 
+                    `✓ Selected region: ${Math.abs(selectionEnd.x - selectionStart.x) + 1}×${Math.abs(selectionEnd.y - selectionStart.y) + 1}×${Math.abs(selectionEnd.z - selectionStart.z) + 1}`;
+            }
+        });
+
+        // ============ COMMAND BUILDER ============
+        let generatedCommand = '';
+        
+        document.getElementById('generate-command-btn').addEventListener('click', () => {
+            const commandType = document.getElementById('command-type').value;
+            const coords = document.getElementById('command-coords').value || '~ ~ ~';
+            const blockItem = document.getElementById('command-block').value || 'stone';
+            
+            let command = '';
+            
+            switch(commandType) {
+                case 'setblock':
+                    command = `/setblock ${coords} ${blockItem}`;
+                    break;
+                case 'fill':
+                    if (selectionStart && selectionEnd) {
+                        const coords1 = `${selectionStart.x} ${selectionStart.y} ${selectionStart.z}`;
+                        const coords2 = `${selectionEnd.x} ${selectionEnd.y} ${selectionEnd.z}`;
+                        command = `/fill ${coords1} ${coords2} ${blockItem}`;
+                    } else {
+                        command = `/fill ${coords} ${coords} ${blockItem}`;
+                    }
+                    break;
+                case 'give':
+                    const item = blockItem.replace('_', ' ').replace(/^(.)/, x => x.toUpperCase());
+                    command = `/give @s ${blockItem} 64`;
+                    break;
+                case 'tp':
+                    command = `/tp @s ${coords}`;
+                    break;
+                case 'execute':
+                    command = `/execute at @s run setblock ${coords} ${blockItem}`;
+                    break;
+                case 'clone':
+                    if (selectionStart && selectionEnd) {
+                        const coords1 = `${selectionStart.x} ${selectionStart.y} ${selectionStart.z}`;
+                        const coords2 = `${selectionEnd.x} ${selectionEnd.y} ${selectionEnd.z}`;
+                        command = `/clone ${coords1} ${coords2} ${coords}`;
+                    } else {
+                        command = `/clone 0 0 0 10 10 10 0 0 20`;
+                    }
+                    break;
+                case 'summon':
+                    command = `/summon armor_stand ${coords} {NoGravity:1}`;
+                    break;
+            }
+            
+            generatedCommand = command;
+            const cmdDisplay = document.getElementById('generated-command');
+            cmdDisplay.textContent = command;
+            
+            // Add copy button
+            const copyBtn = document.createElement('button');
+            copyBtn.textContent = 'Copy to Clipboard';
+            copyBtn.style.cssText = 'margin-top: 8px; padding: 6px 12px; background: var(--color-accent); color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 11px;';
+            copyBtn.addEventListener('click', () => {
+                navigator.clipboard.writeText(generatedCommand);
+                copyBtn.textContent = '✓ Copied!';
+                setTimeout(() => { copyBtn.textContent = 'Copy to Clipboard'; }, 1500);
+            });
+            
+            // Remove old button if exists
+            const oldBtn = cmdDisplay.nextElementSibling;
+            if (oldBtn && oldBtn.textContent.includes('Copy')) {
+                oldBtn.remove();
+            }
+            cmdDisplay.parentNode.insertBefore(copyBtn, cmdDisplay.nextSibling);
+            
+            document.getElementById('status-message').textContent = '✓ Command generated - Click to copy';
+        });
+
+        // ============ REDSTONE POWER VISUALIZATION ============
+        document.getElementById('toggle-redstone-list').addEventListener('click', () => {
+            const list = document.getElementById('redstone-list');
+            const isHidden = list.style.display === 'none';
+            list.style.display = isHidden ? '' : 'none';
+            
+            if (isHidden && engine && renderer) {
+                // Find all redstone blocks in visible area and display their power
+                list.innerHTML = '';
+                const renderRadius = 30;
+                const centerX = Math.round(renderer.cameraX);
+                const centerZ = Math.round(renderer.cameraZ);
+                const centerY = Math.round(renderer.cameraY);
+                
+                let found = 0;
+                for (let x = centerX - renderRadius; x <= centerX + renderRadius; x++) {
+                    for (let z = centerZ - renderRadius; z <= centerZ + renderRadius; z++) {
+                        for (let y = Math.max(0, centerY - 15); y <= Math.min(63, centerY + 10); y++) {
+                            const blockId = engine.get_block(x, y, z);
+                            if (blockId === 0) continue;
+                            
+                            const blockName = engine.get_block_name(blockId);
+                            const isRedstone = engine.is_redstone_component(blockId);
+                            
+                            if (isRedstone) {
+                                const power = engine.get_redstone_power(x, y, z);
+                                const powerPercent = (power / 15) * 100;
+                                
+                                const item = document.createElement('div');
+                                item.className = 'redstone-item';
+                                item.style.cssText = 'padding: 8px; margin: 4px 0; background: var(--color-surface); border-left: 3px solid ' + (power > 0 ? '#ff6b6b' : '#999') + '; border-radius: 3px; cursor: pointer;';
+                                item.innerHTML = `
+                                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                                        <div>
+                                            <div style="font-weight: 600; color: var(--color-text);">${blockName}</div>
+                                            <div style="font-size: 11px; color: var(--color-text-secondary);">${x}, ${y}, ${z}</div>
+                                        </div>
+                                        <div style="text-align: right;">
+                                            <div style="font-size: 13px; font-weight: 600; color: ${power > 0 ? '#ff6b6b' : '#999'};">${power}/15</div>
+                                        </div>
+                                    </div>
+                                    <div style="width: 100%; height: 4px; background: #333; border-radius: 2px; margin-top: 4px; overflow: hidden;">
+                                        <div style="height: 100%; width: ${powerPercent}%; background: linear-gradient(90deg, #ff6b6b, #ff9999); transition: width 0.2s;"></div>
+                                    </div>
+                                `;
+                                item.addEventListener('click', () => {
+                                    engine.toggle_redstone_power(x, y, z);
+                                    const newPower = engine.get_redstone_power(x, y, z);
+                                    document.getElementById('status-message').textContent = `● ${blockName} at (${x}, ${y}, ${z}): Power ${newPower}/15`;
+                                    document.getElementById('toggle-redstone-list').click();  // Refresh list
+                                });
+                                list.appendChild(item);
+                                found++;
+                                if (found >= 20) break;  // Limit to 20 components
+                            }
+                        }
+                        if (found >= 20) break;
+                    }
+                    if (found >= 20) break;
+                }
+                
+                if (found === 0) {
+                    list.innerHTML = '<div style="color:var(--color-text-secondary); text-align:center; padding:12px;">No redstone components in view</div>';
+                }
+            }
+        });
+
+        // ============ EVENT LISTENERS ============
+        document.getElementById('btn-new-project').addEventListener('click', showEditor);
+        document.getElementById('btn-home').addEventListener('click', showHome);
+        
+        document.getElementById('btn-theme-toggle').addEventListener('click', () => {
+            const themes = ['light', 'coffee', 'dark', 'onyx'];
+            const idx = themes.indexOf(themeManager.currentTheme);
+            themeManager.setTheme(themes[(idx + 1) % themes.length]);
+        });
+
+        document.querySelectorAll('.theme-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                themeManager.setTheme(btn.getAttribute('data-theme'));
+            });
+        });
+
+        document.querySelectorAll('[data-tool]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('[data-tool]').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentTool = btn.dataset.tool;
+                document.getElementById('hud-mode').textContent = btn.textContent.trim();
+            });
+        });
+
+        // ============ KEYBOARD CONTROLS ============
+        document.addEventListener('keydown', (e) => {
+            keys[e.key] = true;
+        });
+        
+        document.addEventListener('keyup', (e) => {
+            keys[e.key] = false;
+        });
+
+        // Canvas interaction
+        document.getElementById('mc-canvas').addEventListener('click', (e) => {
+            if (!engine || !renderer) return;
+            const pos = renderer.screenToWorld(e.offsetX, e.offsetY);
+            let y = Math.round(pos.y);
+            if (e.shiftKey) y += 1;
+            if (e.ctrlKey) y -= 1;
+            y = Math.max(0, Math.min(63, y));
+            
+            const x = Math.round(pos.x);
+            const z = Math.round(pos.z);
+            
+            if (currentTool === 'place') {
+                const selectedId = window.selectedBlockId || 1;
+                try {
+                    engine.set_block(x, y, z, selectedId);
+                    const blockName = engine.get_block_name(selectedId);
+                    document.getElementById('status-message').textContent = `✓ Placed ${blockName} at ${x}, ${y}, ${z}`;
+                    if (renderer) renderer.invalidateChunkCache();
+                } catch(err) {
+                    document.getElementById('status-message').textContent = `✕ Error placing block: ${err}`;
+                }
+            } else if (currentTool === 'break') {
+                try {
+                    engine.set_block(x, y, z, 0);
+                    document.getElementById('status-message').textContent = `✕ Broke block at ${x}, ${y}, ${z}`;
+                    if (renderer) renderer.invalidateChunkCache();
+                } catch(err) {
+                    document.getElementById('status-message').textContent = `✕ Error breaking block: ${err}`;
+                }
+            } else if (currentTool === 'redstone') {
+                // Redstone mode - check if it's a redstone block
+                const blockId = engine.get_block(x, y, z);
+                const blockName = engine.get_block_name(blockId);
+                
+                if (engine.is_redstone_component(blockId)) {
+                    engine.toggle_redstone_power(x, y, z);
+                    const power = engine.get_redstone_power(x, y, z);
+                    document.getElementById('status-message').textContent = `● ${blockName}: Power ${power}/15`;
+                } else if (blockId === 0) {
+                    document.getElementById('status-message').textContent = '✕ No block at position';
+                } else {
+                    document.getElementById('status-message').textContent = `✕ ${blockName} (ID: ${blockId}) is not a redstone component`;
+                }
+            }
+        });
+
+        document.getElementById('mc-canvas').addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            if (!engine || !renderer) return;
+            const pos = renderer.screenToWorld(e.offsetX, e.offsetY);
+            const id = engine.get_block(pos.x, pos.y, pos.z);
+            const name = engine.get_block_name(id);
+            
+            let info = `⚙ ${name} (ID: ${id})`;
+            if (engine.is_redstone_component(id)) {
+                const power = engine.get_redstone_power(pos.x, pos.y, pos.z);
+                info += ` [Power: ${power}/15]`;
+            }
+            
+            document.getElementById('status-message').textContent = info;
+        });
+
+        // Mouse wheel zoom
+        document.getElementById('mc-canvas').addEventListener('wheel', (e) => {
+            e.preventDefault();
+            if (!renderer) return;
+            renderer.zoomCamera(e.deltaY > 0 ? 1 : -1);
+        });
+
+        // Canvas hover effect - DISABLED for now
+        /*
+        document.getElementById('mc-canvas').addEventListener('mousemove', (e) => {
+            if (!engine || !renderer) return;
+            const pos = renderer.screenToWorld(e.offsetX, e.offsetY);
+            let y = pos.y;
+            if (e.shiftKey) y += 1;
+            if (e.ctrlKey) y -= 1;
+            y = Math.max(0, Math.min(63, y));
+            
+            const blockId = engine.get_block(pos.x, y, pos.z);
+            if (blockId > 0) {
+                renderer.setHoveredBlock({x: pos.x, y: y, z: pos.z});
+            } else {
+                renderer.setHoveredBlock(null);
+            }
+        });
+        */
+
+        // Keyboard
+        window.addEventListener('keydown', (e) => {
+            keys[e.key] = true;
+        });
+        window.addEventListener('keyup', (e) => {
+            keys[e.key] = false;
+        });
+
+        // ============ HOTKEY MANAGER ============
+        const hotkeyManager = {
+            defaultHotkeys: {
+                moveUp: 'w',
+                moveDown: 's',
+                moveLeft: 'a',
+                moveRight: 'd',
+                cameraUp: 'e',
+                cameraDown: 'q',
+                undo: 'ctrl+z',
+                redo: 'ctrl+y'
+            },
+            
+            hotkeys: {},
+            
+            init() {
+                const saved = localStorage.getItem('mcide-hotkeys');
+                if (saved) {
+                    try {
+                        this.hotkeys = JSON.parse(saved);
+                    } catch (e) {
+                        this.hotkeys = { ...this.defaultHotkeys };
+                    }
+                } else {
+                    this.hotkeys = { ...this.defaultHotkeys };
+                }
+                
+                // Setup hotkey customization button
+                const btn = document.getElementById('btn-customize-hotkeys');
+                if (btn) {
+                    btn.addEventListener('click', () => this.showCustomizationModal());
+                }
+            },
+            
+            showCustomizationModal() {
+                let content = '<div style="font-size: 12px;">';
+                
+                for (const [action, key] of Object.entries(this.hotkeys)) {
+                    const label = action.replace(/([A-Z])/g, ' $1').trim();
+                    content += `<div style="margin: 8px 0; display: flex; justify-content: space-between; align-items: center;">
+                        <label style="flex: 1;">${label}:</label>
+                        <input type="text" class="hotkey-input" data-action="${action}" value="${key}" style="flex: 1; padding: 4px; border: 1px solid var(--color-border); border-radius: 3px; font-family: monospace;" readonly>
+                    </div>`;
+                }
+                
+                content += '</div>';
+                
+                modalManager.show({
+                    title: '⌨ Customize Hotkeys',
+                    content,
+                    actions: [
+                        {
+                            label: 'Reset to Defaults',
+                            class: 'secondary',
+                            callback: () => {
+                                this.hotkeys = { ...this.defaultHotkeys };
+                                this.save();
+                                document.getElementById('status-message').textContent = '✓ Hotkeys reset to defaults';
+                            }
+                        },
+                        {
+                            label: 'Close',
+                            class: 'primary',
+                            closes: true
+                        }
+                    ]
+                });
+            },
+            
+            save() {
+                localStorage.setItem('mcide-hotkeys', JSON.stringify(this.hotkeys));
+                const updated = Object.entries(this.hotkeys).map(([a, k]) => `${a}: ${k}`).join(', ');
+                document.getElementById('status-message').textContent = `✓ Hotkeys updated: ${updated}`;
+            }
+        };
+
+        // ============ SAVE/LOAD PROJECTS ============
+        function setupSaveLoad() {
+            document.getElementById('btn-save').addEventListener('click', (e) => {
+                e.preventDefault();
+                modalManager.show({
+                    title: '💾 Save Project',
+                    content: '<label>Project Name:</label><input type="text" id="project-name-input" class="modal-input" placeholder="My Amazing Build" autofocus>',
+                    actions: [
+                        {
+                            label: 'Save',
+                            class: 'primary',
+                            callback: () => {
+                                const name = document.getElementById('project-name-input').value.trim();
+                                if (!name) {
+                                    document.getElementById('status-message').textContent = '✗ Project name required';
+                                    return;
+                                }
+                                if (!engine) return;
+                                const worldData = engine.save_world();
+                                localStorage.setItem(`mcide_project_${name}`, worldData);
+                                document.getElementById('status-message').textContent = `✓ Project "${name}" saved`;
+                                document.querySelector('.project-name').textContent = name;
+                            },
+                            closes: true
+                        },
+                        {
+                            label: 'Cancel',
+                            class: 'secondary',
+                            closes: true
+                        }
+                    ]
+                });
+            });
+
+            document.getElementById('btn-load').addEventListener('click', (e) => {
+                e.preventDefault();
+                const projects = [];
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key.startsWith('mcide_project_')) {
+                        projects.push(key.replace('mcide_project_', ''));
+                    }
+                }
+                
+                let content = '<div style="max-height:300px; overflow-y:auto;">';
+                if (projects.length === 0) {
+                    content += '<p style="color:var(--color-text-secondary);">No saved projects</p>';
+                } else {
+                    projects.forEach(name => {
+                        content += `<button class="project-item" data-project="${name}" style="display:block; width:100%; text-align:left; padding:8px; margin:4px 0; background:var(--color-surface); border:1px solid var(--color-border); cursor:pointer; border-radius:4px;">${name}</button>`;
+                    });
+                }
+                content += '</div>';
+                
+                modalManager.show({
+                    title: '📂 Load Project',
+                    content,
+                    actions: [
+                        {
+                            label: 'Close',
+                            class: 'secondary',
+                            closes: true
+                        }
+                    ]
+                });
+                
+                document.querySelectorAll('.project-item').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const name = btn.dataset.project;
+                        const data = localStorage.getItem(`mcide_project_${name}`);
+                        if (data && engine) {
+                            engine.load_world(data);
+                            if (renderer) renderer.render();
+                            document.getElementById('status-message').textContent = `✓ Project "${name}" loaded`;
+                            document.querySelector('.project-name').textContent = name;
+                            modalManager.hide();
+                        }
+                    });
+                });
+            });
+        }
+
+        // ============ SCHEMATIC EXPORT/IMPORT ============
+        function setupSchematicHandlers() {
+            document.getElementById('btn-export-schematic').addEventListener('click', (e) => {
+                e.preventDefault();
+                if (!engine) return;
+                
+                const schematicData = engine.export_schematic();
+                const blob = new Blob([schematicData], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'schematic.json';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                document.getElementById('status-message').textContent = '✓ Schematic exported!';
+            });
+
+            document.getElementById('btn-import-schematic').addEventListener('click', (e) => {
+                e.preventDefault();
+                document.getElementById('schematic-file-input').click();
+            });
+
+            document.getElementById('schematic-file-input').addEventListener('change', async (e) => {
+                if (!engine) return;
+                
+                const file = e.target.files[0];
+                if (!file) return;
+                
+                const reader = new FileReader();
+                reader.onload = async (event) => {
+                    try {
+                        const jsonData = event.target.result;
+                        const result = engine.import_schematic(jsonData);
+                        if (renderer) renderer.render();
+                        document.getElementById('status-message').textContent = `✓ ${result}`;
+                    } catch (err) {
+                        document.getElementById('status-message').textContent = `✗ Import failed: ${err}`;
+                    }
+                };
+                reader.readAsText(file);
+            });
+        }
+
+        // ============ STARTUP ============
+        themeManager.init();
+        hotkeyManager.init();
+        window.selectedBlockId = 5;
+        initializeWasm();
+    </script>
+    
+    <!-- Hidden file input for schematic import -->
+    <input type="file" id="schematic-file-input" style="display:none;" accept=".json">
+</body>
+</html>
+
+

@@ -1,0 +1,498 @@
+// MCIDE Texture Manager
+class TextureManager {
+    constructor() {
+        this.textures = new Map();
+    }
+
+    async loadTexture(filename) {
+        if (this.textures.has(filename)) {
+            return this.textures.get(filename);
+        }
+        try {
+            const image = new Image();
+            image.crossOrigin = 'anonymous';
+            return new Promise((resolve, reject) => {
+                image.onload = () => {
+                    this.textures.set(filename, image);
+                    resolve(image);
+                };
+                image.onerror = () => reject(new Error(`Failed to load: ${filename}`));
+                image.src = `TexturesForMinecraft/${filename}`;
+            });
+        } catch (err) {
+            console.error('Texture error:', err);
+            throw err;
+        }
+    }
+}
+
+// 3D Isometric Block Renderer
+class MCIDERenderer {
+    constructor(canvas, engine) {
+        this.canvas = canvas;
+        this.engine = engine;
+        this.device = null;
+        this.context = null;
+        this.ctx = null;
+        this.textureManager = new TextureManager();
+        this.isReady = false;
+        this.useCanvas2D = false;
+        
+        // Camera state
+        this.cameraX = 128;
+        this.cameraY = 32;
+        this.cameraZ = 128;
+        this.zoom = 1.0;  // Camera zoom level
+        
+        // Rendering constants
+        this.BLOCK_SIZE = 32;
+        this.ISO_SCALE_X = 0.866;  // cos(30°)
+        this.ISO_SCALE_Y = 0.5;    // sin(30°)
+        
+        // Highlight and selection
+        this.hoveredBlock = null;
+        this.selectedBlock = null;
+        
+        // Chunk loading
+        this.chunkSize = 16;
+        this.chunkCache = new Map();  // Cache for loaded blocks
+        this.loadedChunks = new Set();  // Set of currently loaded chunk keys
+        this.viewDistance = 3;  // Number of chunks to load in each direction
+    }
+
+    async initialize() {
+        try {
+            // Try WebGPU
+            if (navigator.gpu) {
+                try {
+                    const adapter = await navigator.gpu.requestAdapter();
+                    if (adapter) {
+                        this.device = await adapter.requestDevice();
+                        this.context = this.canvas.getContext('webgpu');
+                        if (this.context) {
+                            const canvasFormat = navigator.gpu.getPreferredCanvasFormat();
+                            this.context.configure({ device: this.device, format: canvasFormat });
+                            console.log('✓ WebGPU ready');
+                            this.isReady = true;
+                            return true;
+                        }
+                    }
+                } catch (err) {
+                    console.warn('WebGPU unavailable');
+                }
+            }
+            
+            // Fallback to Canvas 2D
+            this.ctx = this.canvas.getContext('2d');
+            this.useCanvas2D = true;
+            this.isReady = true;
+            console.log('✓ Canvas 2D renderer ready');
+            return false;
+        } catch (err) {
+            console.error('Renderer init error:', err);
+            this.ctx = this.canvas.getContext('2d');
+            this.useCanvas2D = true;
+            this.isReady = true;
+            return false;
+        }
+    }
+
+    // Convert world coordinates to isometric screen coordinates
+    worldToScreen(x, y, z) {
+        // Apply camera offset
+        const relX = x - this.cameraX;
+        const relZ = z - this.cameraZ;
+        const relY = y - this.cameraY;
+        
+        const isoX = (relX - relZ) * this.ISO_SCALE_X * this.BLOCK_SIZE * this.zoom;
+        const isoY = (relX + relZ) * this.ISO_SCALE_Y * this.BLOCK_SIZE * this.zoom - relY * this.BLOCK_SIZE * 0.5 * this.zoom;
+        
+        const screenX = this.canvas.width / 2 + isoX;
+        const screenY = this.canvas.height / 2 + isoY;
+        
+        return { x: screenX, y: screenY };
+    }
+
+    // Convert screen coordinates back to world
+    screenToWorld(screenX, screenY) {
+        const relX = (screenX - this.canvas.width / 2) / this.BLOCK_SIZE;
+        const relY = (screenY - this.canvas.height / 2) / this.BLOCK_SIZE;
+        
+        const x = (relX / this.ISO_SCALE_X + relY / this.ISO_SCALE_Y) / 2 + this.cameraX;
+        const z = (relY / this.ISO_SCALE_Y - relX / this.ISO_SCALE_X) / 2 + this.cameraZ;
+        
+        return { x: Math.round(x), z: Math.round(z), y: Math.round(this.cameraY) };
+    }
+
+    // Draw a single block in isometric view
+    drawBlock(x, y, z, blockId) {
+        if (blockId === 0 || !this.ctx) return; // Air
+        
+        const colors = {
+            1: '#8B8680',  // stone
+            2: '#8B7355',  // dirt
+            3: '#2D5016',  // grass_block
+            4: '#6B6B6B',  // cobblestone
+            5: '#C19A6B',  // oak_planks
+            6: '#A0522D',  // oak_log
+            7: '#228B22',  // oak_leaves
+            8: '#F4A460',  // sand
+            9: '#3366CC',  // water
+            10: '#FF4500', // lava
+            11: '#D3D3D3', // gravel
+            // Redstone blocks (12-30)
+            12: '#B20000', // redstone_block
+            13: '#8B4513', // redstone_ore
+            14: '#CC0000', // redstone_wire
+            15: '#FF6B6B', // redstone_torch
+            16: '#FF6B6B', // redstone_wall_torch
+            17: '#654321', // lever
+            18: '#654321', // stone_button
+            19: '#8B4513', // oak_button
+            20: '#A52A2A', // repeater
+            21: '#696969', // comparator
+            22: '#8B7355', // observer
+            23: '#696969', // dispenser
+            24: '#696969', // dropper
+            25: '#C0C0C0', // piston
+            26: '#8B008B', // sticky_piston
+            27: '#696969', // piston_head
+            28: '#8B4513', // hopper
+            29: '#1C1C1C', // sculk_sensor
+            30: '#4B0082'  // calibrated_sculk_sensor
+        };
+        
+        const color = colors[blockId] || '#999';
+        
+        // Get redstone power level (if applicable)
+        const isRedstone = blockId >= 12 && blockId <= 30;
+        const redstoneColor = isRedstone ? this.getPowerColor(blockId) : null;
+        const displayColor = redstoneColor || color;
+        
+        const screen = this.worldToScreen(x, y, z);
+        const sx = screen.x;
+        const sy = screen.y;
+        const size = this.BLOCK_SIZE * this.zoom;
+        
+        const ctx = this.ctx;
+        
+        // Determine if this block is hovered or selected
+        const isHovered = this.hoveredBlock && 
+                         this.hoveredBlock.x === x && 
+                         this.hoveredBlock.y === y && 
+                         this.hoveredBlock.z === z;
+        const isSelected = this.selectedBlock && 
+                          this.selectedBlock.x === x && 
+                          this.selectedBlock.y === y && 
+                          this.selectedBlock.z === z;
+        
+        // Top face (brightest) - with pattern for grass blocks
+        const isGrass = blockId === 3;
+        if (isGrass) {
+            ctx.fillStyle = '#5AA638';  // Grass green
+        } else {
+            ctx.fillStyle = displayColor;
+        }
+        
+        ctx.beginPath();
+        ctx.moveTo(sx, sy);
+        ctx.lineTo(sx + size * this.ISO_SCALE_X, sy - size * this.ISO_SCALE_Y);
+        ctx.lineTo(sx, sy - size * this.ISO_SCALE_Y * 2);
+        ctx.lineTo(sx - size * this.ISO_SCALE_X, sy - size * this.ISO_SCALE_Y);
+        ctx.closePath();
+        ctx.fill();
+        
+        // Add outline or glow based on hover/select state
+        if (isSelected) {
+            ctx.shadowColor = '#FFD700';
+            ctx.shadowBlur = 8;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 0;
+            ctx.strokeStyle = '#FFD700';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+            ctx.shadowColor = 'transparent';
+        } else if (isHovered) {
+            ctx.shadowColor = '#4FC3F7';
+            ctx.shadowBlur = 6;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 0;
+            ctx.strokeStyle = '#4FC3F7';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            ctx.shadowColor = 'transparent';
+        } else {
+            ctx.strokeStyle = '#222';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+        }
+        
+        // Left face (dark)
+        const leftColor = isGrass ? '#8B7355' : displayColor;
+        ctx.fillStyle = this.darkenColor(leftColor, 0.75);
+        ctx.beginPath();
+        ctx.moveTo(sx - size * this.ISO_SCALE_X, sy - size * this.ISO_SCALE_Y);
+        ctx.lineTo(sx - size * this.ISO_SCALE_X, sy + size * this.ISO_SCALE_Y);
+        ctx.lineTo(sx, sy + size * this.ISO_SCALE_Y * 2);
+        ctx.lineTo(sx, sy - size * this.ISO_SCALE_Y * 2);
+        ctx.closePath();
+        ctx.fill();
+        
+        ctx.strokeStyle = isHovered ? '#4FC3F7' : (isSelected ? '#FFD700' : '#111');
+        ctx.lineWidth = isHovered || isSelected ? 2 : 1;
+        ctx.stroke();
+        
+        // Right face (medium)
+        ctx.fillStyle = this.darkenColor(displayColor, 0.85);
+        ctx.beginPath();
+        ctx.moveTo(sx + size * this.ISO_SCALE_X, sy - size * this.ISO_SCALE_Y);
+        ctx.lineTo(sx + size * this.ISO_SCALE_X, sy + size * this.ISO_SCALE_Y);
+        ctx.lineTo(sx, sy + size * this.ISO_SCALE_Y * 2);
+        ctx.lineTo(sx, sy - size * this.ISO_SCALE_Y * 2);
+        ctx.closePath();
+        ctx.fill();
+        
+        ctx.strokeStyle = isHovered ? '#4FC3F7' : (isSelected ? '#FFD700' : '#111');
+        ctx.lineWidth = isHovered || isSelected ? 2 : 1;
+        ctx.stroke();
+        
+        // Add inner highlight on top face for water/lava
+        if ((blockId === 9 || blockId === 10) && !isHovered && !isSelected) {
+            ctx.strokeStyle = this.lightenColor(color, 0.4);
+            ctx.lineWidth = 1;
+            ctx.globalAlpha = 0.4;
+            ctx.beginPath();
+            ctx.moveTo(sx + size * this.ISO_SCALE_X * 0.5, sy - size * this.ISO_SCALE_Y * 0.5);
+            ctx.lineTo(sx - size * this.ISO_SCALE_X * 0.5, sy - size * this.ISO_SCALE_Y * 0.5);
+            ctx.stroke();
+            ctx.globalAlpha = 1.0;
+        }
+        
+        // Add redstone power indicator as aura
+        if (isRedstone && redstoneColor) {
+            ctx.strokeStyle = redstoneColor;
+            ctx.lineWidth = 2;
+            ctx.globalAlpha = 0.6;
+            ctx.beginPath();
+            ctx.arc(sx, sy - size * this.ISO_SCALE_Y, size * 0.4, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.globalAlpha = 1.0;
+        }
+    }
+
+    // Get color based on redstone power level
+    getPowerColor(blockId) {
+        // Simulate power level based on block type
+        // In a full implementation, this would query actual power from engine
+        const powerMap = {
+            12: '#FF0000', // redstone_block - fully powered
+            14: '#FF6B6B', // redstone_wire - partial power
+            15: '#FF8888', // redstone_torch - powered
+            16: '#FF8888', // redstone_wall_torch - powered
+            20: '#FF4444', // repeater - powered
+            21: '#FF4444', // comparator - powered
+        };
+        return powerMap[blockId] || '#FFAA00';
+    }
+
+    darkenColor(color, factor) {
+        const num = parseInt(color.replace('#', ''), 16);
+        const amt = Math.round(255 * (1 - factor));
+        const R = Math.max(0, Math.min(255, (num >> 16) - amt));
+        const G = Math.max(0, Math.min(255, ((num >> 8) & 0x00FF) - amt));
+        const B = Math.max(0, Math.min(255, (num & 0x0000FF) - amt));
+        return '#' + (0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1);
+    }
+
+    lightenColor(color, factor) {
+        const num = parseInt(color.replace('#', ''), 16);
+        const amt = Math.round(255 * factor);
+        const R = Math.max(0, Math.min(255, (num >> 16) + amt));
+        const G = Math.max(0, Math.min(255, ((num >> 8) & 0x00FF) + amt));
+        const B = Math.max(0, Math.min(255, (num & 0x0000FF) + amt));
+        return '#' + (0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1);
+    }
+
+    setHoveredBlock(block) {
+        this.hoveredBlock = block;
+    }
+
+    setSelectedBlock(block) {
+        this.selectedBlock = block;
+    }
+
+    zoomCamera(delta) {
+        const newZoom = Math.max(0.3, Math.min(3.0, this.zoom + delta * 0.1));
+        this.zoom = newZoom;
+    }
+
+    render() {
+        if (!this.useCanvas2D || !this.ctx || !this.engine) return;
+        
+        const ctx = this.ctx;
+        
+        // Clear canvas
+        ctx.fillStyle = '#0d1117';
+        ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        
+        // Render grid background
+        ctx.strokeStyle = '#1a1a1a';
+        ctx.lineWidth = 0.5;
+        const gridSpacing = this.BLOCK_SIZE;
+        for (let i = 0; i < this.canvas.width; i += gridSpacing) {
+            ctx.beginPath();
+            ctx.moveTo(i, 0);
+            ctx.lineTo(i, this.canvas.height);
+            ctx.stroke();
+        }
+        for (let i = 0; i < this.canvas.height; i += gridSpacing) {
+            ctx.beginPath();
+            ctx.moveTo(0, i);
+            ctx.lineTo(this.canvas.width, i);
+            ctx.stroke();
+        }
+        
+        // Update chunk cache based on camera position
+        this.updateChunkCache();
+        
+        // Render visible blocks
+        const renderRadius = 20;
+        const centerX = Math.round(this.cameraX);
+        const centerZ = Math.round(this.cameraZ);
+        const centerY = Math.round(this.cameraY);
+        
+        // Collect blocks to render from cache
+        const blocks = [];
+        for (let x = centerX - renderRadius; x <= centerX + renderRadius; x++) {
+            for (let z = centerZ - renderRadius; z <= centerZ + renderRadius; z++) {
+                for (let y = Math.min(40, centerY + 10); y >= Math.max(0, centerY - 15); y--) {
+                    // Try to get from cache first
+                    const blockId = this.getBlockFromCache(x, y, z);
+                    if (blockId > 0) {
+                        blocks.push({ x, y, z, blockId });
+                    }
+                }
+            }
+        }
+        
+        // Sort by depth (painter's algorithm) - back to front
+        blocks.sort((a, b) => {
+            const depthA = (a.x + a.z) * 10 - a.y;
+            const depthB = (b.x + b.z) * 10 - b.y;
+            return depthA - depthB;
+        });
+        
+        // Draw blocks
+        blocks.forEach(block => {
+            this.drawBlock(block.x, block.y, block.z, block.blockId);
+        });
+        
+        // Draw cursor/crosshair
+        const centerX_screen = this.canvas.width / 2;
+        const centerY_screen = this.canvas.height / 2;
+        ctx.strokeStyle = '#58a6ff';
+        ctx.lineWidth = 1;
+        
+        // Draw cross
+        ctx.beginPath();
+        ctx.moveTo(centerX_screen - 8, centerY_screen);
+        ctx.lineTo(centerX_screen + 8, centerY_screen);
+        ctx.moveTo(centerX_screen, centerY_screen - 8);
+        ctx.lineTo(centerX_screen, centerY_screen + 8);
+        ctx.stroke();
+        
+        // Draw circle
+        ctx.beginPath();
+        ctx.arc(centerX_screen, centerY_screen, 6, 0, Math.PI * 2);
+        ctx.stroke();
+        
+        // Draw info
+        ctx.fillStyle = '#58a6ff';
+        ctx.font = '12px monospace';
+        ctx.fillText(`Cam: ${Math.round(this.cameraX)},${Math.round(this.cameraY)},${Math.round(this.cameraZ)}`, 10, 20);
+        ctx.fillText(`Chunks: ${this.loadedChunks.size}`, 10, 35);
+    }
+
+    updateChunkCache() {
+        const camChunkX = Math.floor(this.cameraX / this.chunkSize);
+        const camChunkZ = Math.floor(this.cameraZ / this.chunkSize);
+        
+        const newLoadedChunks = new Set();
+        
+        // Load chunks within view distance
+        for (let dx = -this.viewDistance; dx <= this.viewDistance; dx++) {
+            for (let dz = -this.viewDistance; dz <= this.viewDistance; dz++) {
+                const chunkX = camChunkX + dx;
+                const chunkZ = camChunkZ + dz;
+                
+                if (chunkX >= 0 && chunkX < 16 && chunkZ >= 0 && chunkZ < 16) {
+                    const chunkKey = `${chunkX},${chunkZ}`;
+                    newLoadedChunks.add(chunkKey);
+                    
+                    // Load chunk if not already loaded
+                    if (!this.loadedChunks.has(chunkKey)) {
+                        this.loadChunk(chunkX, chunkZ);
+                    }
+                }
+            }
+        }
+        
+        // Unload chunks that are no longer needed
+        for (const chunkKey of this.loadedChunks) {
+            if (!newLoadedChunks.has(chunkKey)) {
+                this.chunkCache.delete(chunkKey);
+            }
+        }
+        
+        this.loadedChunks = newLoadedChunks;
+    }
+
+    loadChunk(chunkX, chunkZ) {
+        const chunkKey = `${chunkX},${chunkZ}`;
+        if (this.chunkCache.has(chunkKey)) return;
+        
+        // Load all blocks in this chunk (16x16x64 = full height)
+        const x1 = chunkX * this.chunkSize;
+        const z1 = chunkZ * this.chunkSize;
+        const x2 = x1 + this.chunkSize - 1;
+        const z2 = z1 + this.chunkSize - 1;
+        
+        try {
+            const blocksJson = this.engine.get_blocks_in_region(x1, 0, z1, x2, 63, z2);
+            const blocks = JSON.parse(blocksJson);
+            
+            // Store blocks indexed by position
+            const chunkData = {};
+            blocks.forEach(block => {
+                chunkData[`${block.x},${block.y},${block.z}`] = block.id;
+            });
+            
+            this.chunkCache.set(chunkKey, chunkData);
+        } catch (err) {
+            console.error(`Error loading chunk ${chunkKey}:`, err);
+        }
+    }
+
+    getBlockFromCache(x, y, z) {
+        const chunkX = Math.floor(x / this.chunkSize);
+        const chunkZ = Math.floor(z / this.chunkSize);
+        const chunkKey = `${chunkX},${chunkZ}`;
+        
+        const chunkData = this.chunkCache.get(chunkKey);
+        if (!chunkData) {
+            // Chunk not loaded, fallback to direct query
+            return this.engine.get_block(x, y, z);
+        }
+        
+        return chunkData[`${x},${y},${z}`] || 0;
+    }
+
+    invalidateChunkCache() {
+        // Called when blocks are placed/broken to refresh the cache
+        // For now, clear all chunks to ensure consistency
+        this.chunkCache.clear();
+        this.loadedChunks.clear();
+    }
+}
+
+export { TextureManager, MCIDERenderer };
