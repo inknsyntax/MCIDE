@@ -55,7 +55,7 @@ class MCIDERenderer {
                 // Mark as failed to avoid repeated attempts
                 this.textureCache.set(blockName, null);
             };
-            img.src = `TexturesForMinecraft/${blockName}.png`;
+            img.src = `Assets/Textures/${blockName}.png`;
             this.texturePromises.set(blockName, img);
         }
         
@@ -86,7 +86,7 @@ class MCIDERenderer {
         return colors[blockName] || '#999999';
     }
 
-    // Draw isometric block with texture or fallback color
+    // Draw isometric block with professional shading and textures
     drawBlock(x, y, z, blockId) {
         if (blockId === 0 || !this.ctx) return; // Air
         
@@ -99,121 +99,63 @@ class MCIDERenderer {
         const sy = screen.y;
         const size = this.BLOCK_SIZE * this.zoom;
         const ctx = this.ctx;
-
-        // Draw three isometric faces
-        const isGrass = blockName === 'grass_block';
         
-        // TOP FACE
-        if (texture) {
-            ctx.save();
-            // Clip to top face diamond shape
-            ctx.beginPath();
-            ctx.moveTo(sx, sy);
-            ctx.lineTo(sx + size * this.ISO_SCALE_X, sy - size * this.ISO_SCALE_Y);
-            ctx.lineTo(sx, sy - size * this.ISO_SCALE_Y * 2);
-            ctx.lineTo(sx - size * this.ISO_SCALE_X, sy - size * this.ISO_SCALE_Y);
-            ctx.closePath();
-            ctx.clip();
-            
-            // Scale and draw texture
-            const scale = (size * this.ISO_SCALE_X * 2) / 16;  // 16px texture
-            ctx.drawImage(texture, sx - size * this.ISO_SCALE_X, sy - size * this.ISO_SCALE_Y * 2, size * this.ISO_SCALE_X * 2, size * this.ISO_SCALE_Y * 2);
-            ctx.restore();
-        } else {
-            // Fallback solid color
-            const faceColor = isGrass ? '#5AA638' : color;
-            ctx.fillStyle = faceColor;
-            ctx.beginPath();
-            ctx.moveTo(sx, sy);
-            ctx.lineTo(sx + size * this.ISO_SCALE_X, sy - size * this.ISO_SCALE_Y);
-            ctx.lineTo(sx, sy - size * this.ISO_SCALE_Y * 2);
-            ctx.lineTo(sx - size * this.ISO_SCALE_X, sy - size * this.ISO_SCALE_Y);
-            ctx.closePath();
-            ctx.fill();
-        }
+        ctx.save();
         
-        // Top face outline
-        ctx.strokeStyle = '#333';
-        ctx.lineWidth = 1;
+        // TOP FACE - brightest
         ctx.beginPath();
         ctx.moveTo(sx, sy);
         ctx.lineTo(sx + size * this.ISO_SCALE_X, sy - size * this.ISO_SCALE_Y);
         ctx.lineTo(sx, sy - size * this.ISO_SCALE_Y * 2);
         ctx.lineTo(sx - size * this.ISO_SCALE_X, sy - size * this.ISO_SCALE_Y);
         ctx.closePath();
-        ctx.stroke();
-
-        // LEFT FACE
+        
         if (texture) {
-            ctx.save();
-            ctx.beginPath();
-            ctx.moveTo(sx - size * this.ISO_SCALE_X, sy - size * this.ISO_SCALE_Y);
-            ctx.lineTo(sx - size * this.ISO_SCALE_X, sy + size * this.ISO_SCALE_Y);
-            ctx.lineTo(sx, sy + size * this.ISO_SCALE_Y * 2);
-            ctx.lineTo(sx, sy - size * this.ISO_SCALE_Y * 2);
-            ctx.closePath();
             ctx.clip();
-            
-            ctx.drawImage(texture, sx - size * this.ISO_SCALE_X, sy - size * this.ISO_SCALE_Y, size * this.ISO_SCALE_X, size * this.ISO_SCALE_Y * 3);
-            ctx.restore();
+            ctx.drawImage(texture, sx - size * this.ISO_SCALE_X, sy - size * this.ISO_SCALE_Y * 2, size * this.ISO_SCALE_X * 2, size * this.ISO_SCALE_Y * 2);
         } else {
-            const sideColor = this.adjustColor(isGrass ? '#8B7355' : color, 0.75);
-            ctx.fillStyle = sideColor;
-            ctx.beginPath();
-            ctx.moveTo(sx - size * this.ISO_SCALE_X, sy - size * this.ISO_SCALE_Y);
-            ctx.lineTo(sx - size * this.ISO_SCALE_X, sy + size * this.ISO_SCALE_Y);
-            ctx.lineTo(sx, sy + size * this.ISO_SCALE_Y * 2);
-            ctx.lineTo(sx, sy - size * this.ISO_SCALE_Y * 2);
-            ctx.closePath();
+            ctx.fillStyle = color;
             ctx.fill();
         }
+        ctx.restore();
         
-        // Left face outline
-        ctx.strokeStyle = '#222';
-        ctx.lineWidth = 1;
+        // LEFT FACE - darker (shaded)
+        ctx.save();
         ctx.beginPath();
         ctx.moveTo(sx - size * this.ISO_SCALE_X, sy - size * this.ISO_SCALE_Y);
         ctx.lineTo(sx - size * this.ISO_SCALE_X, sy + size * this.ISO_SCALE_Y);
         ctx.lineTo(sx, sy + size * this.ISO_SCALE_Y * 2);
         ctx.lineTo(sx, sy - size * this.ISO_SCALE_Y * 2);
         ctx.closePath();
-        ctx.stroke();
-
-        // RIGHT FACE
+        
         if (texture) {
-            ctx.save();
-            ctx.beginPath();
-            ctx.moveTo(sx + size * this.ISO_SCALE_X, sy - size * this.ISO_SCALE_Y);
-            ctx.lineTo(sx + size * this.ISO_SCALE_X, sy + size * this.ISO_SCALE_Y);
-            ctx.lineTo(sx, sy + size * this.ISO_SCALE_Y * 2);
-            ctx.lineTo(sx, sy - size * this.ISO_SCALE_Y * 2);
-            ctx.closePath();
             ctx.clip();
-            
-            ctx.drawImage(texture, sx, sy - size * this.ISO_SCALE_Y, size * this.ISO_SCALE_X, size * this.ISO_SCALE_Y * 3);
-            ctx.restore();
+            ctx.globalAlpha = 0.85;
+            ctx.drawImage(texture, sx - size * this.ISO_SCALE_X, sy - size * this.ISO_SCALE_Y, size * this.ISO_SCALE_X, size * this.ISO_SCALE_Y * 3);
         } else {
-            const sideColor = this.adjustColor(color, 0.85);
-            ctx.fillStyle = sideColor;
-            ctx.beginPath();
-            ctx.moveTo(sx + size * this.ISO_SCALE_X, sy - size * this.ISO_SCALE_Y);
-            ctx.lineTo(sx + size * this.ISO_SCALE_X, sy + size * this.ISO_SCALE_Y);
-            ctx.lineTo(sx, sy + size * this.ISO_SCALE_Y * 2);
-            ctx.lineTo(sx, sy - size * this.ISO_SCALE_Y * 2);
-            ctx.closePath();
+            ctx.fillStyle = this.adjustColor(color, 0.72);
             ctx.fill();
         }
+        ctx.restore();
         
-        // Right face outline
-        ctx.strokeStyle = '#222';
-        ctx.lineWidth = 1;
+        // RIGHT FACE - medium dark (shaded)
+        ctx.save();
         ctx.beginPath();
         ctx.moveTo(sx + size * this.ISO_SCALE_X, sy - size * this.ISO_SCALE_Y);
         ctx.lineTo(sx + size * this.ISO_SCALE_X, sy + size * this.ISO_SCALE_Y);
         ctx.lineTo(sx, sy + size * this.ISO_SCALE_Y * 2);
         ctx.lineTo(sx, sy - size * this.ISO_SCALE_Y * 2);
         ctx.closePath();
-        ctx.stroke();
+        
+        if (texture) {
+            ctx.clip();
+            ctx.globalAlpha = 0.92;
+            ctx.drawImage(texture, sx, sy - size * this.ISO_SCALE_Y, size * this.ISO_SCALE_X, size * this.ISO_SCALE_Y * 3);
+        } else {
+            ctx.fillStyle = this.adjustColor(color, 0.82);
+            ctx.fill();
+        }
+        ctx.restore();
     }
 
     // Convert world coords to screen coords
@@ -251,68 +193,72 @@ class MCIDERenderer {
         if (!this.ctx || !this.engine) return;
         
         const ctx = this.ctx;
+        ctx.save();
         
         // Clear with sky gradient
         const gradient = ctx.createLinearGradient(0, 0, 0, this.canvas.height);
-        gradient.addColorStop(0, '#87CEEB');  // Sky blue
-        gradient.addColorStop(1, '#E0F6FF');  // Lighter blue
+        gradient.addColorStop(0, '#87CEEB');
+        gradient.addColorStop(1, '#E0F6FF');
         ctx.fillStyle = gradient;
         ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
         
-        // Collect visible blocks
-        const visibleBlocks = [];
-        const renderRadius = Math.ceil(this.viewDistance * 16 / Math.cos(Math.PI / 4));
+        // Aggressive culling - reduced render distance for performance
+        const renderRadius = Math.ceil(this.viewDistance * 16 / 2.0);  // Reduced from 1.5
         const minX = Math.max(0, Math.floor(this.cameraX - renderRadius));
-        const maxX = Math.min(256, Math.ceil(this.cameraX + renderRadius));
+        const maxX = Math.min(255, Math.ceil(this.cameraX + renderRadius));
         const minZ = Math.max(0, Math.floor(this.cameraZ - renderRadius));
-        const maxZ = Math.min(256, Math.ceil(this.cameraZ + renderRadius));
-        // Increased Y range to see ground and sky
-        const minY = Math.max(0, Math.floor(this.cameraY - 35));
-        const maxY = Math.min(64, Math.ceil(this.cameraY + 20));
+        const maxZ = Math.min(255, Math.ceil(this.cameraZ + renderRadius));
+        const minY = Math.max(0, Math.floor(this.cameraY - 20));
+        const maxY = Math.min(63, Math.ceil(this.cameraY + 8));
         
+        // Collect and sort visible blocks with screen-space culling
+        const visibleBlocks = [];
+        const screenPadding = 64;  // Pixels beyond screen edges to render
         for (let y = minY; y <= maxY; y++) {
-            for (let x = minX; x <= maxX; x++) {
-                for (let z = minZ; z <= maxZ; z++) {
+            for (let z = minZ; z <= maxZ; z++) {
+                for (let x = minX; x <= maxX; x++) {
                     const blockId = this.engine.get_block(x, y, z);
-                    if (blockId !== 0) {
-                        visibleBlocks.push({ x, y, z, id: blockId, depth: (x + z) * 10 - y });
+                    if (blockId > 0) {  // Skip air (0)
+                        // Screen-space culling: skip blocks completely off-screen
+                        const screen = this.worldToScreen(x, y, z);
+                        const size = this.BLOCK_SIZE * this.zoom;
+                        if (screen.x + size * 1.2 > -screenPadding && 
+                            screen.x - size * 1.2 < this.canvas.width + screenPadding &&
+                            screen.y + size * 1.2 > -screenPadding && 
+                            screen.y - size * 1.2 < this.canvas.height + screenPadding) {
+                            visibleBlocks.push({ 
+                                x, y, z, id: blockId, 
+                                depth: (x + z) * 100 - y * 5
+                            });
+                        }
                     }
                 }
             }
         }
         
         // Sort by depth (painter's algorithm)
-        visibleBlocks.sort((a, b) => a.depth - b.depth);
+        visibleBlocks.sort((a, b) => b.depth - a.depth);
         
-        // Draw all blocks
-        for (const block of visibleBlocks) {
+        // Draw visible blocks (limit to prevent hangs)
+        const maxBlocksToDraw = 2000;
+        for (let i = 0; i < Math.min(visibleBlocks.length, maxBlocksToDraw); i++) {
+            const block = visibleBlocks[i];
             this.drawBlock(block.x, block.y, block.z, block.id);
         }
         
-        // Draw crosshair
+        // Draw crosshair (simplified)
         const cx = this.canvas.width / 2;
         const cy = this.canvas.height / 2;
         ctx.strokeStyle = '#4FC3F7';
         ctx.lineWidth = 2;
         ctx.globalAlpha = 0.8;
-        
-        // Crosshair lines
         ctx.beginPath();
-        ctx.moveTo(cx - 15, cy);
-        ctx.lineTo(cx - 8, cy);
-        ctx.stroke();
-        
-        ctx.beginPath();
-        ctx.moveTo(cx + 8, cy);
-        ctx.lineTo(cx + 15, cy);
-        ctx.stroke();
-        
-        ctx.beginPath();
+        ctx.moveTo(cx - 12, cy);
+        ctx.lineTo(cx + 12, cy);
+        ctx.moveTo(cx, cy - 12);
+        ctx.lineTo(cx, cy + 12);
         ctx.moveTo(cx, cy - 15);
         ctx.lineTo(cx, cy - 8);
-        ctx.stroke();
-        
-        ctx.beginPath();
         ctx.moveTo(cx, cy + 8);
         ctx.lineTo(cx, cy + 15);
         ctx.stroke();
@@ -324,10 +270,8 @@ class MCIDERenderer {
         ctx.fill();
         ctx.globalAlpha = 1.0;
     }
-
+    
     invalidateChunkCache() {
         this.chunkCache.clear();
     }
 }
-
-export { MCIDERenderer };

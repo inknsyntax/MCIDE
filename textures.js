@@ -21,7 +21,7 @@ class TextureManager {
      * Load texture from file
      */
     async loadTexture(blockName, faceName = 'single') {
-        const texturePath = `/TexturesForMinecraft/${blockName}.png`;
+        const texturePath = `/Assets/Textures/${blockName}.png`;
         
         try {
             const img = new Image();
