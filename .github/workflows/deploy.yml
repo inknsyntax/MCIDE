@@ -31,11 +31,11 @@ jobs:
           targets: wasm32-unknown-unknown
       
       - name: Install wasm-pack
-        run: curl https://rustwasm.org/wasm-pack/installer/init.sh -sSf | sh
+        run: cargo install wasm-pack
       
       - name: Build WASM
         run: wasm-pack build --target web --release
-        working-directory: .
+        shell: bash
       
       - name: Setup Pages
         uses: actions/configure-pages@v4
