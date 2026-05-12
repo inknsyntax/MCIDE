@@ -126,6 +126,25 @@ Detailed documentation coming soon. For now, check:
 - Rust API: See `src/lib.rs` for the core WASM API
 - Frontend: Check `index.html` for the UI structure and `style.css` for styling
 
+## 🌐 Deployment
+
+### GitHub Pages
+
+MCIDE is automatically deployed to GitHub Pages on every push to `main`. Access the live version at:
+
+**[https://inknsyntax.github.io/MCIDE/](https://inknsyntax.github.io/MCIDE/)**
+
+The deployment uses GitHub Actions (see `.github/workflows/deploy.yml`) which:
+1. Builds the Rust WebAssembly module
+2. Uploads all files to GitHub Pages
+3. Automatically updates on every commit
+
+The application automatically detects whether it's running on GitHub Pages (at `/MCIDE/`) or locally and adjusts all asset paths accordingly using `window.basePath`.
+
+### Local Development
+
+For local development, the application works with relative paths. Simply run a local web server in the project directory and it will work without modification.
+
 ## 🤝 Contributing
 
 This is an ambitious project! Contributions are welcome. Please feel free to:

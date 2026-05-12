@@ -151,11 +151,11 @@ class MCIDERenderer {
             19: '#8B4513', // oak_button
             20: '#A52A2A', // repeater
             21: '#696969', // comparator
-            22: '#8B7355', // observer
+            22: '#443c31', // observer
             23: '#696969', // dispenser
             24: '#696969', // dropper
             25: '#C0C0C0', // piston
-            26: '#8B008B', // sticky_piston
+            26: '#629c60', // sticky_piston
             27: '#696969', // piston_head
             28: '#8B4513', // hopper
             29: '#1C1C1C', // sculk_sensor

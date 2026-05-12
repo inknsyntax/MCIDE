@@ -32,15 +32,25 @@ class MCIDE3DRenderer {
         this.renderer.shadowMap.enabled = true;
         console.log(`[RENDERER] Created: ${canvas.clientWidth}x${canvas.clientHeight}`);
         
-        // Lighting - Professional setup
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+        // Lighting - Professional setup with better texture rendering
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
         this.scene.add(ambientLight);
         
-        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.9);
+        // Soft fill light for details
+        const fillLight = new THREE.DirectionalLight(0xffffcc, 0.3);
+        fillLight.position.set(-30, 30, -30);
+        this.scene.add(fillLight);
+        
+        // Main directional light with shadows
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.85);
         directionalLight.position.set(50, 50, 50);
         directionalLight.castShadow = true;
         directionalLight.shadow.mapSize.width = 2048;
         directionalLight.shadow.mapSize.height = 2048;
+        directionalLight.shadow.camera.left = -100;
+        directionalLight.shadow.camera.right = 100;
+        directionalLight.shadow.camera.top = 100;
+        directionalLight.shadow.camera.bottom = -100;
         this.scene.add(directionalLight);
         
         // BEAUTIFUL GREY GRID
@@ -144,12 +154,13 @@ class MCIDE3DRenderer {
         // Zoom with scroll wheel
         this.canvas.addEventListener('wheel', (e) => {
             e.preventDefault();
-            const zoomSpeed = 0.1;
+            const settings = window.mcideSettings || { camera: { zoomSpeed: 0.1, zoomMin: 5, zoomMax: 200 } };
+            const zoomSpeed = settings.camera.zoomSpeed;
             const direction = this.camera.position.clone().normalize();
             const currentDistance = this.camera.position.length();
             const newDistance = currentDistance + (e.deltaY > 0 ? zoomSpeed : -zoomSpeed);
             
-            if (newDistance > 5 && newDistance < 200) {
+            if (newDistance > settings.camera.zoomMin && newDistance < settings.camera.zoomMax) {
                 this.camera.position.copy(direction.multiplyScalar(newDistance));
                 this.camera.lookAt(0, 0, 0);
             }
@@ -266,36 +277,65 @@ class MCIDE3DRenderer {
         }
         
         // Load actual textures from Assets/Textures/
-        const textureUrl = `./Assets/Textures/${blockName}.png`;
+        const textureUrl = window.assetPath ? window.assetPath(`./Assets/Textures/${blockName}.png`) : `./Assets/Textures/${blockName}.png`;
+        const textureLoader = new THREE.TextureLoader();
         
-        const texture = new THREE.TextureLoader().load(
+        let texture = null;
+        let material = null;
+        
+        textureLoader.load(
             textureUrl,
-            undefined,
+            (loadedTexture) => {
+                // Success: texture loaded
+                texture = loadedTexture;
+                
+                // Enhanced Minecraft-style filtering
+                texture.magFilter = THREE.NearestFilter;
+                texture.minFilter = THREE.NearestMipmapLinearFilter;
+                texture.generateMipmaps = true;
+                
+                // Create high-quality material
+                material = new THREE.MeshStandardMaterial({
+                    map: texture,
+                    roughness: 0.75,
+                    metalness: 0.05,
+                    flatShading: false,
+                    side: THREE.FrontSide,
+                    shadowSide: THREE.BackSide
+                });
+                
+                material.emissiveIntensity = 0;
+                this.materials.set(blockName, material);
+            },
             undefined,
             () => {
-                // Fallback color if texture fails
+                // Fallback: texture failed to load
                 const hash = blockName.split('').reduce((a, c) => ((a << 5) - a) + c.charCodeAt(0), 0);
                 const hue = Math.abs(hash) % 360;
                 const saturation = 0.7 + (Math.abs(hash) % 30) / 100;
                 const lightness = 0.45 + (Math.abs(hash) % 15) / 100;
                 
                 const color = new THREE.Color().setHSL(hue / 360, saturation, lightness);
-                return color;
+                material = new THREE.MeshStandardMaterial({
+                    color: color,
+                    roughness: 0.8,
+                    metalness: 0.0
+                });
+                
+                this.materials.set(blockName, material);
             }
         );
         
-        // Apply Minecraft-style filtering
-        texture.magFilter = THREE.NearestFilter;
-        texture.minFilter = THREE.NearestMipmapLinearFilter;
+        // Return material immediately (may be updated when texture loads)
+        if (!material) {
+            // Create temporary material while loading
+            material = new THREE.MeshStandardMaterial({
+                color: 0x808080,
+                roughness: 0.8,
+                metalness: 0.0
+            });
+        }
         
-        const material = new THREE.MeshStandardMaterial({
-            map: texture,
-            roughness: 0.8,
-            metalness: 0.0,
-            flatShading: false
-        });
-        
-        this.materials.set(blockName, material);
         return material;
     }
     

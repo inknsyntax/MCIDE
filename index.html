@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MCIDE - The Minecraft IDE</title>
+    <script>
+        // Set base path for GitHub Pages or local development
+        window.basePath = window.location.pathname.includes('/MCIDE/') ? '/MCIDE' : '';
+        window.assetPath = (path) => window.basePath + '/' + path.replace(/^\.\//, '');
+    </script>
     <link rel="stylesheet" href="style.css">
 </head>
 <body data-theme="dark">
@@ -16,17 +21,17 @@
             </div>
             <div class="home-grid">
                 <div class="home-card" id="btn-new-project">
-                    <div class="card-icon"><img src="Assets/Menu/MCIDECreateProject.png" alt="New Project" style="width: 100%; height: 100%; object-fit: contain;"></div>
+                    <div class="card-icon"><img id="img-new-project" alt="New Project" style="width: 100%; height: 100%; object-fit: contain;"></div>
                     <h3>New Project</h3>
                     <p>Start building</p>
                 </div>
                 <div class="home-card" id="btn-command-builder">
-                    <div class="card-icon"><img src="Assets/Menu/MCIDECommand.gif" alt="Command Builder" style="width: 100%; height: 100%; object-fit: contain;"></div>
+                    <div class="card-icon"><img id="img-command-builder" alt="Command Builder" style="width: 100%; height: 100%; object-fit: contain;"></div>
                     <h3>Command Builder</h3>
                     <p>Create commands</p>
                 </div>
                 <div class="home-card" id="btn-redstone-tester">
-                    <div class="card-icon"><img src="Assets/Menu/MCIDERedstone.png" alt="Redstone Tester" style="width: 100%; height: 100%; object-fit: contain;"></div>
+                    <div class="card-icon"><img id="img-redstone-tester" alt="Redstone Tester" style="width: 100%; height: 100%; object-fit: contain;"></div>
                     <h3>Redstone Tester</h3>
                     <p>Test circuits</p>
                 </div>
@@ -49,7 +54,145 @@
         </div>
     </div>
 
-    <!-- Main Editor Layout -->
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="settings-modal" style="display: none;">
+        <div class="settings-dialog">
+            <div class="settings-header">
+                <h2>⚙ Settings</h2>
+                <button class="btn-close" id="close-settings">&times;</button>
+            </div>
+            <div class="settings-tabs">
+                <button class="tab-btn active" data-tab="hotkeys">Hotkeys</button>
+                <button class="tab-btn" data-tab="camera">Camera</button>
+                <button class="tab-btn" data-tab="rendering">Rendering</button>
+                <button class="tab-btn" data-tab="ui">UI</button>
+            </div>
+            
+            <div class="settings-content">
+                <!-- Hotkeys Tab -->
+                <div class="tab-content active" id="hotkeys-tab">
+                    <h3>Hotkey Configuration</h3>
+                    <div class="settings-form">
+                        <div class="setting-item">
+                            <label>Place Block</label>
+                            <input type="text" id="hotkey-place" placeholder="Left-click" disabled class="hotkey-input">
+                        </div>
+                        <div class="setting-item">
+                            <label>Break Block</label>
+                            <input type="text" id="hotkey-break" placeholder="Left-click in break mode" disabled class="hotkey-input">
+                        </div>
+                        <div class="setting-item">
+                            <label>Pick Block (soon)</label>
+                            <input type="text" id="hotkey-pick" placeholder="Middle-click" disabled class="hotkey-input">
+                        </div>
+                        <div class="setting-item">
+                            <label>Toggle UI</label>
+                            <input type="text" id="hotkey-toggle-ui" class="hotkey-input" value="H">
+                        </div>
+                        <div class="setting-item">
+                            <label>Open Settings</label>
+                            <input type="text" id="hotkey-settings" class="hotkey-input" value=";">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Camera Tab -->
+                <div class="tab-content" id="camera-tab">
+                    <h3>Camera Controls</h3>
+                    <div class="settings-form">
+                        <div class="setting-item">
+                            <label>Move Camera (WASD)</label>
+                            <div class="setting-controls">
+                                <label>Speed: <input type="range" id="camera-move-speed" min="0.1" max="2" step="0.1" value="1" style="width: 100px;"></label>
+                                <span id="camera-move-speed-value">1</span>
+                            </div>
+                        </div>
+                        <div class="setting-item">
+                            <label>Rotate Camera (Mouse Drag)</label>
+                            <div class="setting-controls">
+                                <label>Sensitivity: <input type="range" id="camera-rotate-speed" min="0.1" max="3" step="0.1" value="1" style="width: 100px;"></label>
+                                <span id="camera-rotate-speed-value">1</span>
+                            </div>
+                        </div>
+                        <div class="setting-item">
+                            <label>Zoom Speed</label>
+                            <div class="setting-controls">
+                                <label>Speed: <input type="range" id="camera-zoom-speed" min="0.05" max="0.5" step="0.05" value="0.1" style="width: 100px;"></label>
+                                <span id="camera-zoom-speed-value">0.1</span>
+                            </div>
+                        </div>
+                        <div class="setting-item">
+                            <label>Zoom Distance (min - max)</label>
+                            <div class="setting-controls">
+                                <label>Min: <input type="number" id="camera-zoom-min" value="5" style="width: 60px;"></label>
+                                <label>Max: <input type="number" id="camera-zoom-max" value="200" style="width: 60px;"></label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Rendering Tab -->
+                <div class="tab-content" id="rendering-tab">
+                    <h3>Rendering Settings</h3>
+                    <div class="settings-form">
+                        <div class="setting-item">
+                            <label>
+                                <input type="checkbox" id="render-shadows" checked> Enable Shadows
+                            </label>
+                        </div>
+                        <div class="setting-item">
+                            <label>
+                                <input type="checkbox" id="render-grid" checked> Show Grid
+                            </label>
+                        </div>
+                        <div class="setting-item">
+                            <label>
+                                <input type="checkbox" id="render-stats" checked> Show Stats
+                            </label>
+                        </div>
+                        <div class="setting-item">
+                            <label>Texture Quality</label>
+                            <select id="render-quality" style="width: 100%;">
+                                <option value="low">Low (Fast)</option>
+                                <option value="medium" selected>Medium</option>
+                                <option value="high">High (Slow)</option>
+                                <option value="ultra">Ultra</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- UI Tab -->
+                <div class="tab-content" id="ui-tab">
+                    <h3>UI Settings</h3>
+                    <div class="settings-form">
+                        <div class="setting-item">
+                            <label>
+                                <input type="checkbox" id="ui-compact" checked> Compact Mode
+                            </label>
+                        </div>
+                        <div class="setting-item">
+                            <label>
+                                <input type="checkbox" id="ui-dark-mode" checked> Dark Mode
+                            </label>
+                        </div>
+                        <div class="setting-item">
+                            <label>UI Scale</label>
+                            <div class="setting-controls">
+                                <input type="range" id="ui-scale" min="0.8" max="1.5" step="0.1" value="1" style="width: 100px;">
+                                <span id="ui-scale-value">100%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="settings-footer">
+                <button id="reset-settings-btn" class="tool-btn" style="flex: 1;">Reset to Defaults</button>
+                <button id="save-settings-btn" class="tool-btn" style="flex: 1; margin-left: 10px;">Save Settings</button>
+            </div>
+        </div>
+    </div>
     <div id="editor-screen" class="editor-screen">
         <div class="editor-layout">
             <!-- Top Header/Toolbar -->
@@ -128,8 +271,10 @@
                 </div>
                 <div class="panel">
                     <h3 class="panel-title">Export</h3>
+                    <button id="export-litematic-btn" class="tool-btn" style="width: 100%; margin-bottom: 5px;">◊ Litematic</button>
                     <button id="export-json-btn" class="tool-btn" style="width: 100%; margin-bottom: 5px;">= JSON</button>
                     <button id="export-csv-btn" class="tool-btn" style="width: 100%; margin-bottom: 5px;">~ CSV</button>
+                    <button id="settings-btn" class="tool-btn" style="width: 100%; margin-bottom: 5px;">⚙ Settings</button>
                     <button id="copy-summary-btn" class="tool-btn" style="width: 100%;">* Summary</button>
                 </div>
                 <div class="panel">
@@ -163,9 +308,14 @@
     </div>
 
     <!-- Load scripts -->
-    <script src="./renderer.js?v=4"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="./renderer3d.js?v=6"></script>
+    <script>
+        // Set script sources with base path
+        document.write('<script src="' + window.assetPath('./renderer.js?v=5') + '"><\/script>');
+        document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\/script>');
+        document.write('<script src="' + window.assetPath('./renderer3d.js?v=7') + '"><\/script>');
+        document.write('<script src="https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako.min.js"><\/script>');
+        document.write('<script src="' + window.assetPath('./nbt-encoder.js?v=3') + '"><\/script>');
+    </script>
 
     <script type="module">
         // Initialize the app inside an async IIFE
@@ -174,10 +324,10 @@
                 // Add a small delay to ensure all script tags have loaded
                 await new Promise(resolve => setTimeout(resolve, 150));
                 
-                const mcide = await import('./pkg/mcide.js');
+                const mcide = await import(window.assetPath('./pkg/mcide.js'));
                 
                 // Initialize WASM
-                await mcide.default('./pkg/mcide_bg.wasm');
+                await mcide.default(window.assetPath('./pkg/mcide_bg.wasm'));
                 
                 const MCIDEEngine = mcide.MCIDEEngine;
                 
@@ -186,7 +336,7 @@
                 window.MCIDEEngine = MCIDEEngine;
                 
                 // Load versions data
-                const versionsResponse = await fetch('./data/versions.json');
+                const versionsResponse = await fetch(window.assetPath('./data/versions.json'));
                 const versionsData = await versionsResponse.json();
                 window.versionsData = versionsData;
                 
@@ -210,7 +360,7 @@
                             div.className = 'block-item' + (block.id === 2 ? ' active' : '');
                             
                             const img = document.createElement('img');
-                            img.src = `./Assets/Textures/${block.name}.png`;
+                            img.src = window.assetPath(`./Assets/Textures/${block.name}.png`);
                             img.alt = block.name;
                             img.title = block.name;
                             img.onerror = () => {
@@ -322,6 +472,11 @@
                 // Update status when ready
                 document.getElementById('status-center').textContent = 'Ready - Click "New Project"';
                 
+                // Set up home screen images with base path
+                document.getElementById('img-new-project').src = window.assetPath('./Assets/Menu/MCIDECreateProject.png');
+                document.getElementById('img-command-builder').src = window.assetPath('./Assets/Menu/MCIDECommand.gif');
+                document.getElementById('img-redstone-tester').src = window.assetPath('./Assets/Menu/MCIDERedstone.png');
+                
                 // ========== THEME SWITCHER ==========
                 document.querySelectorAll('.theme-btn').forEach(btn => {
                     btn.addEventListener('click', () => {
@@ -360,23 +515,49 @@
                 });
                 
                 // ========== EXPORT BUTTONS ==========
-                document.getElementById('export-json-btn')?.addEventListener('click', () => {
-                    const worldData = {
-                        version: document.getElementById('block-version-select').value,
-                        blocks: []
-                    };
-                    
-                    // Get all blocks from renderer
+                
+                // Helper function to export world data
+                function getWorldData() {
+                    const blocks = [];
                     if (window.renderer && window.renderer.blockMeshes) {
                         window.renderer.blockMeshes.forEach((mesh, key) => {
                             const [x, y, z] = key.split(',').map(Number);
-                            worldData.blocks.push({
+                            blocks.push({
                                 x, y, z,
                                 id: mesh.userData.blockId,
                                 name: mesh.userData.blockName
                             });
                         });
                     }
+                    return blocks;
+                }
+                
+                // .litematic Export (Minecraft World Edit format)
+                document.getElementById('export-litematic-btn')?.addEventListener('click', () => {
+                    const blocks = getWorldData();
+                    
+                    // Create proper Litematica schematic data
+                    const schematicData = {
+                        name: 'MCIDE Export',
+                        version: document.getElementById('block-version-select').value,
+                        blocks: blocks
+                    };
+                    
+                    // Use proper NBT encoder
+                    if (typeof exportLitematic !== 'undefined') {
+                        exportLitematic(schematicData);
+                        document.getElementById('status-center').textContent = '✓ Exported world.litematic (NBT binary format)';
+                    } else {
+                        console.error('NBT encoder not loaded');
+                        document.getElementById('status-center').textContent = '✗ Error: NBT encoder not available';
+                    }
+                });
+                
+                document.getElementById('export-json-btn')?.addEventListener('click', () => {
+                    const worldData = {
+                        version: document.getElementById('block-version-select').value,
+                        blocks: getWorldData()
+                    };
                     
                     const json = JSON.stringify(worldData, null, 2);
                     const blob = new Blob([json], { type: 'application/json' });
@@ -386,7 +567,7 @@
                     a.download = 'world.json';
                     a.click();
                     URL.revokeObjectURL(url);
-                    document.getElementById('status-center').textContent = 'Exported world.json';
+                    document.getElementById('status-center').textContent = '✓ Exported world.json';
                 });
                 
                 document.getElementById('copy-summary-btn')?.addEventListener('click', () => {
@@ -401,6 +582,227 @@
                     navigator.clipboard.writeText(summary);
                     document.getElementById('status-center').textContent = 'Copied summary to clipboard!';
                 });
+                
+                // ========== SETTINGS MODAL ==========
+                window.mcideSettings = {
+                    hotkeys: {
+                        'toggleUI': 'h',
+                        'openSettings': ';'
+                    },
+                    camera: {
+                        moveSpeed: 1,
+                        rotateSpeed: 1,
+                        zoomSpeed: 0.1,
+                        zoomMin: 5,
+                        zoomMax: 200
+                    },
+                    rendering: {
+                        shadows: true,
+                        grid: true,
+                        stats: true,
+                        quality: 'medium'
+                    },
+                    ui: {
+                        compact: true,
+                        darkMode: true,
+                        scale: 1
+                    }
+                };
+                
+                // Load saved settings
+                const savedSettings = localStorage.getItem('mcide-settings');
+                if (savedSettings) {
+                    Object.assign(window.mcideSettings, JSON.parse(savedSettings));
+                }
+                
+                // Settings modal handlers
+                const settingsModal = document.getElementById('settings-modal');
+                const settingsBtn = document.getElementById('settings-btn');
+                
+                // Open settings
+                settingsBtn?.addEventListener('click', () => {
+                    settingsModal.style.display = 'flex';
+                    updateSettingsUI();
+                });
+                
+                // Close settings
+                document.getElementById('close-settings')?.addEventListener('click', () => {
+                    settingsModal.style.display = 'none';
+                });
+                
+                // Tab switching
+                document.querySelectorAll('.tab-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const tabName = btn.dataset.tab;
+                        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                        btn.classList.add('active');
+                        document.getElementById(`${tabName}-tab`).classList.add('active');
+                    });
+                });
+                
+                // Update settings UI with current values
+                function updateSettingsUI() {
+                    // Camera sliders
+                    document.getElementById('camera-move-speed').value = window.mcideSettings.camera.moveSpeed;
+                    document.getElementById('camera-move-speed-value').textContent = window.mcideSettings.camera.moveSpeed.toFixed(1);
+                    
+                    document.getElementById('camera-rotate-speed').value = window.mcideSettings.camera.rotateSpeed;
+                    document.getElementById('camera-rotate-speed-value').textContent = window.mcideSettings.camera.rotateSpeed.toFixed(1);
+                    
+                    document.getElementById('camera-zoom-speed').value = window.mcideSettings.camera.zoomSpeed;
+                    document.getElementById('camera-zoom-speed-value').textContent = window.mcideSettings.camera.zoomSpeed.toFixed(2);
+                    
+                    document.getElementById('camera-zoom-min').value = window.mcideSettings.camera.zoomMin;
+                    document.getElementById('camera-zoom-max').value = window.mcideSettings.camera.zoomMax;
+                    
+                    // Rendering checkboxes
+                    document.getElementById('render-shadows').checked = window.mcideSettings.rendering.shadows;
+                    document.getElementById('render-grid').checked = window.mcideSettings.rendering.grid;
+                    document.getElementById('render-stats').checked = window.mcideSettings.rendering.stats;
+                    document.getElementById('render-quality').value = window.mcideSettings.rendering.quality;
+                    
+                    // UI settings
+                    document.getElementById('ui-compact').checked = window.mcideSettings.ui.compact;
+                    document.getElementById('ui-dark-mode').checked = window.mcideSettings.ui.darkMode;
+                    document.getElementById('ui-scale').value = window.mcideSettings.ui.scale;
+                    document.getElementById('ui-scale-value').textContent = Math.round(window.mcideSettings.ui.scale * 100) + '%';
+                    
+                    // Hotkeys
+                    document.getElementById('hotkey-toggle-ui').value = window.mcideSettings.hotkeys.toggleUI;
+                    document.getElementById('hotkey-settings').value = window.mcideSettings.hotkeys.openSettings;
+                }
+                
+                // Save settings
+                document.getElementById('save-settings-btn')?.addEventListener('click', () => {
+                    // Read all settings from UI
+                    window.mcideSettings.camera.moveSpeed = parseFloat(document.getElementById('camera-move-speed').value);
+                    window.mcideSettings.camera.rotateSpeed = parseFloat(document.getElementById('camera-rotate-speed').value);
+                    window.mcideSettings.camera.zoomSpeed = parseFloat(document.getElementById('camera-zoom-speed').value);
+                    window.mcideSettings.camera.zoomMin = parseInt(document.getElementById('camera-zoom-min').value);
+                    window.mcideSettings.camera.zoomMax = parseInt(document.getElementById('camera-zoom-max').value);
+                    
+                    window.mcideSettings.rendering.shadows = document.getElementById('render-shadows').checked;
+                    window.mcideSettings.rendering.grid = document.getElementById('render-grid').checked;
+                    window.mcideSettings.rendering.stats = document.getElementById('render-stats').checked;
+                    window.mcideSettings.rendering.quality = document.getElementById('render-quality').value;
+                    
+                    window.mcideSettings.ui.compact = document.getElementById('ui-compact').checked;
+                    window.mcideSettings.ui.darkMode = document.getElementById('ui-dark-mode').checked;
+                    window.mcideSettings.ui.scale = parseFloat(document.getElementById('ui-scale').value);
+                    
+                    window.mcideSettings.hotkeys.toggleUI = document.getElementById('hotkey-toggle-ui').value.toLowerCase();
+                    window.mcideSettings.hotkeys.openSettings = document.getElementById('hotkey-settings').value.toLowerCase();
+                    
+                    // Save to localStorage
+                    localStorage.setItem('mcide-settings', JSON.stringify(window.mcideSettings));
+                    
+                    settingsModal.style.display = 'none';
+                    document.getElementById('status-center').textContent = '✓ Settings saved!';
+                });
+                
+                // Reset settings
+                document.getElementById('reset-settings-btn')?.addEventListener('click', () => {
+                    window.mcideSettings = {
+                        hotkeys: { 'toggleUI': 'h', 'openSettings': ';' },
+                        camera: { moveSpeed: 1, rotateSpeed: 1, zoomSpeed: 0.1, zoomMin: 5, zoomMax: 200 },
+                        rendering: { shadows: true, grid: true, stats: true, quality: 'medium' },
+                        ui: { compact: true, darkMode: true, scale: 1 }
+                    };
+                    updateSettingsUI();
+                    document.getElementById('status-center').textContent = '✓ Settings reset to defaults';
+                });
+                
+                // Real-time slider updates
+                document.getElementById('camera-move-speed').addEventListener('input', (e) => {
+                    document.getElementById('camera-move-speed-value').textContent = e.target.value;
+                });
+                document.getElementById('camera-rotate-speed').addEventListener('input', (e) => {
+                    document.getElementById('camera-rotate-speed-value').textContent = e.target.value;
+                });
+                document.getElementById('camera-zoom-speed').addEventListener('input', (e) => {
+                    document.getElementById('camera-zoom-speed-value').textContent = parseFloat(e.target.value).toFixed(2);
+                });
+                document.getElementById('ui-scale').addEventListener('input', (e) => {
+                    document.getElementById('ui-scale-value').textContent = Math.round(e.target.value * 100) + '%';
+                    document.body.style.transform = `scale(${e.target.value})`;
+                });
+                
+                // ========== HOTKEY HANDLING ==========
+                document.addEventListener('keydown', (e) => {
+                    const key = e.key.toLowerCase();
+                    
+                    // Toggle UI with hotkey
+                    if (key === window.mcideSettings.hotkeys.toggleUI) {
+                        e.preventDefault();
+                        const header = document.querySelector('.editor-header');
+                        const footer = document.querySelector('.editor-footer');
+                        const sidebars = document.querySelectorAll('.left-sidebar, .right-sidebar');
+                        
+                        if (!header || !footer) return;
+                        
+                        const isHidden = header.style.display === 'none';
+                        header.style.display = isHidden ? 'flex' : 'none';
+                        footer.style.display = isHidden ? 'flex' : 'none';
+                        sidebars.forEach(s => s.style.display = isHidden ? 'flex' : 'none');
+                        
+                        const canvas = document.getElementById('mc-canvas');
+                        if (canvas) {
+                            if (isHidden) {
+                                canvas.style.width = '100%';
+                            } else {
+                                canvas.style.width = 'auto';
+                            }
+                        }
+                        
+                        document.getElementById('status-center').textContent = isHidden ? 'UI shown' : 'UI hidden';
+                    }
+                    
+                    // Open settings with hotkey
+                    if (key === window.mcideSettings.hotkeys.openSettings && !e.ctrlKey && !e.shiftKey) {
+                        e.preventDefault();
+                        settingsModal.style.display = 'flex';
+                        updateSettingsUI();
+                    }
+                });
+                
+                // ========== CAMERA MOVEMENT ==========
+                const keys = {};
+                const cameraSpeed = 0.5;
+                
+                document.addEventListener('keydown', (e) => {
+                    keys[e.key.toUpperCase()] = true;
+                });
+                
+                document.addEventListener('keyup', (e) => {
+                    keys[e.key.toUpperCase()] = false;
+                });
+                
+                // Add camera movement to animation loop
+                if (window.renderer) {
+                    const originalAnimate = window.renderer.animate.bind(window.renderer);
+                    window.renderer.animate = function() {
+                        // Apply camera movement if renderer exists
+                        if (window.mcideSettings && window.renderer?.camera) {
+                            const moveSpeed = cameraSpeed * window.mcideSettings.camera.moveSpeed;
+                            const direction = new THREE.Vector3();
+                            
+                            if (keys['W']) direction.add(window.renderer.camera.getWorldDirection(new THREE.Vector3()));
+                            if (keys['S']) direction.add(window.renderer.camera.getWorldDirection(new THREE.Vector3()).negate());
+                            if (keys['A']) direction.add(new THREE.Vector3(-1, 0, 0));
+                            if (keys['D']) direction.add(new THREE.Vector3(1, 0, 0));
+                            if (keys['Q']) direction.add(new THREE.Vector3(0, -1, 0));
+                            if (keys['E']) direction.add(new THREE.Vector3(0, 1, 0));
+                            
+                            if (direction.length() > 0) {
+                                direction.normalize().multiplyScalar(moveSpeed);
+                                window.renderer.camera.position.add(direction);
+                            }
+                        }
+                        
+                        originalAnimate();
+                    };
+                }
             } catch (err) {
                 console.error('Init error:', err);
                 document.getElementById('status-center').textContent = `Error: ${err.message}`;
